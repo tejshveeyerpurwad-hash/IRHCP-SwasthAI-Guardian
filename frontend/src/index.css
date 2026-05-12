@@ -5,6 +5,13 @@
 @layer base {
   body {
     @apply font-sans bg-[#F8FAFC] text-slate-900 antialiased selection:bg-emerald-100 selection:text-emerald-900;
+    -webkit-text-size-adjust: 100%; /* Prevents iOS auto-zoom on form focus */
+    text-size-adjust: 100%;
+    touch-action: pan-y; /* Enables smooth vertical scroll on mobile */
+  }
+  /* Remove 300ms tap delay on all interactive elements — critical for ₹3000 Android phones */
+  button, a, input, select, textarea, label {
+    touch-action: manipulation;
   }
 }
 
@@ -79,4 +86,28 @@
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
+}
+
+/* ── Rural Mobile Optimizations ─────────────────────────────────────── */
+/* Kill all animations on devices with battery saver / accessibility settings */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Hide scrollbars inside modals/overlays — cleaner on small screens */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Minimum tap target size — WCAG 2.5.5 & Material Design for rural usability */
+.tap-target {
+  min-height: 44px;
+  min-width: 44px;
 }

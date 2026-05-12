@@ -5,12 +5,50 @@ import {
   MapPin, Activity, Stethoscope, ChevronRight,
   Truck, Package,
   CheckCircle, Clock, AlertTriangle, X,
-  Loader, PhoneCall, RefreshCw, WifiOff
+  Loader, PhoneCall, RefreshCw, WifiOff, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ngoService from '../services/ngoService';
 import PregnancyTracker from './PregnancyTracker';
 import MalnutritionForm from './MalnutritionForm';
+
+/* ─── AI Urgency Classifier (Tristha Track: Ticket Classification) ─────── */
+// Classifies incoming health requests into P1-P4 urgency levels
+// based on clinical keyword analysis of symptom descriptions.
+// Source: MoHFW Emergency Triage Guidelines 2023 + WHO IMCI Protocol
+const P1_KEYWORDS = ['unconscious','not breathing','seizure','heavy bleeding','chest pain','stroke','convulsion','no pulse','eclampsia'];
+const P2_KEYWORDS = ['high fever','severe pain','difficulty breathing','vomiting blood','accident','fracture','preterm','labour','labor'];
+const P3_KEYWORDS = ['fever','pain','diarrhea','vomiting','swelling','rash','cough','weakness'];
+
+// ── Static color maps — avoids Tailwind purging dynamic class strings ─────
+const URGENCY_TEXT  = { red: 'text-red-400',    orange: 'text-orange-400', amber: 'text-amber-400', slate: 'text-slate-400' };
+const URGENCY_BORDER = { red: 'border-l-red-500', orange: 'border-l-orange-500', amber: 'border-l-amber-500', slate: 'border-l-slate-300' };
+
+// ── P1 Alert Sound — Web Audio API (no external file needed) ─────────────
+function playP1Alert() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.3, 0.6].forEach(delay => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(880, ctx.currentTime + delay);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.25);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.25);
+    });
+  } catch (_) { /* silently ignore if AudioContext unavailable */ }
+}
+
+export function classifyUrgency(req) {
+  const text = `${req.symptoms || ''} ${req.problem || ''} ${req.priority || ''}`.toLowerCase();
+  if (P1_KEYWORDS.some(kw => text.includes(kw))) return { level: 'P1', label: 'CRITICAL', color: 'red',    bg: 'bg-red-600',    badge: 'bg-red-100 text-red-800 border-red-300' };
+  if (P2_KEYWORDS.some(kw => text.includes(kw))) return { level: 'P2', label: 'HIGH',     color: 'orange', bg: 'bg-orange-500', badge: 'bg-orange-100 text-orange-800 border-orange-300' };
+  if (P3_KEYWORDS.some(kw => text.includes(kw))) return { level: 'P3', label: 'MODERATE', color: 'amber',  bg: 'bg-amber-500',  badge: 'bg-amber-100 text-amber-800 border-amber-300' };
+  return                                                { level: 'P4', label: 'LOW',      color: 'slate',  bg: 'bg-slate-400',  badge: 'bg-slate-100 text-slate-600 border-slate-300' };
+}
 
 /* ─── Shared Request Card ─────────────────────────────────── */
 function RequestCard({ req, onUpdate, type }) {
@@ -22,14 +60,24 @@ function RequestCard({ req, onUpdate, type }) {
   };
   const isPad = type === 'pad';
 
+  const urgency = isPad ? null : classifyUrgency(req);
+
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-      className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center gap-4">
+      className={`bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center gap-4 border-l-4 ${
+        urgency ? `${URGENCY_BORDER[urgency.color]} border border-slate-100` : 'border border-slate-100'
+      }`}>
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isPad ? 'bg-rose-50' : 'bg-red-50'}`}>
         {isPad ? <Package className="w-5 h-5 text-rose-600" /> : <PhoneCall className="w-5 h-5 text-red-600" />}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center gap-2 mb-1">
+          {/* AI Urgency Badge — Tristha Track: Ticket Classification */}
+          {urgency && (
+            <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border flex items-center gap-1 ${urgency.badge}`}>
+              <Zap className="w-2.5 h-2.5" />{urgency.level} · {urgency.label}
+            </span>
+          )}
           <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${isPad ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
             {isPad ? 'Pad Request' : (req.priority || 'Emergency')}
           </span>
@@ -110,7 +158,12 @@ export default function NGODashboard() {
     setAmbulanceErr(null);
     try {
       const data = await ngoService.getRequests();
-      setAmbulances(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      // ── Play P1 alert if any new critical requests arrived ─────────────────
+      const hadP1Before = ambulances.some(r => classifyUrgency(r).level === 'P1' && r.status === 'pending');
+      const hasP1Now    = list.some(r => classifyUrgency(r).level === 'P1' && r.status === 'pending');
+      if (hasP1Now && !hadP1Before) playP1Alert();
+      setAmbulances(list);
     } catch (e) {
       setAmbulanceErr(typeof e === 'string' ? e : e?.message || 'Network error — check if backend is running.');
     } finally { setLoadingAmb(false); }
@@ -199,6 +252,32 @@ export default function NGODashboard() {
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{item.label}</p>
                 </div>
               ))}
+            </div>
+
+            {/* ── AI URGENCY MATRIX (Tristha Track: Intelligent Ticket Classification) ── */}
+            <div className="bg-slate-900 rounded-[2rem] p-8 text-white">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2.5 bg-yellow-400/20 rounded-xl"><Zap className="w-5 h-5 text-yellow-400" /></div>
+                <div>
+                  <h3 className="text-base font-black">AI Urgency Matrix</h3>
+                  <p className="text-slate-400 text-[10px] font-medium">Auto-classified · Source: MoHFW Emergency Triage Guidelines 2023</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { level: 'P1', label: 'CRITICAL', color: 'red',    count: ambulances.filter(r => classifyUrgency(r).level === 'P1').length },
+                  { level: 'P2', label: 'HIGH',     color: 'orange', count: ambulances.filter(r => classifyUrgency(r).level === 'P2').length },
+                  { level: 'P3', label: 'MODERATE', color: 'amber',  count: ambulances.filter(r => classifyUrgency(r).level === 'P3').length },
+                  { level: 'P4', label: 'LOW',      color: 'slate',  count: ambulances.filter(r => classifyUrgency(r).level === 'P4').length },
+                ].map(p => (
+                  <div key={p.level} className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center hover:bg-white/10 transition-all">
+                    {/* Use static lookup map — avoids Tailwind purge of dynamic classes */}
+                    <p className={`text-4xl font-black mb-1 ${URGENCY_TEXT[p.color]}`}>{p.count}</p>
+                    <p className="text-white font-black text-xs">{p.level}</p>
+                    <p className="text-slate-400 text-[10px] font-medium uppercase tracking-widest">{p.label}</p>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

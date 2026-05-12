@@ -30,9 +30,17 @@ if (cluster.isPrimary) {
   const PORT = process.env.PORT || 5000;
   const DB_PATH = path.resolve('swasth_guardian.sqlite');
 
-  // CORS — open for hackathon demo (Vercel frontend + any judge device)
+  // CORS — whitelisted origins only (set ALLOWED_ORIGINS in .env for production)
+  const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+    : ['http://localhost:5173', 'http://localhost:3000'];
+
   app.use(cors({
-    origin: true, // Allow all origins; tighten this after hackathon
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, Postman, curl)
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS: Origin ${origin} not allowed.`));
+    },
     credentials: true,
   }));
   app.use(express.json());
@@ -80,7 +88,9 @@ if (cluster.isPrimary) {
       pregnant_women INTEGER,
       children_under_5 INTEGER,
       malnutrition_cases INTEGER,
-      asha_contact TEXT
+      asha_contact TEXT,
+      outbreakAlert TEXT DEFAULT NULL,
+      lastUpdated DATETIME DEFAULT NULL
     );
     CREATE TABLE IF NOT EXISTS pregnancy_data (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -250,11 +260,12 @@ if (cluster.isPrimary) {
     let prediction;
     try {
       const AI_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8000';
-      const aiRes = await axios.post(`${AI_URL}/predict/disease`, { symptoms: text });
+      const aiRes = await axios.post(`${AI_URL}/predict/disease`, { symptoms: text }, { timeout: 8000 });
       prediction = aiRes.data.prediction;
     } catch (err) {
-      console.error('AI Service Error (Disease):', err.message);
-      return res.status(503).send({ error: 'Health Assessment AI is currently unavailable. Please try again later or contact support for emergencies.' });
+      console.warn('AI Service unavailable for symptom check — using offline rule:', err.message);
+      // Offline fallback: return a safe advisory so the app still works without the Python service
+      prediction = 'AI assessment unavailable. Based on your symptoms, please consult your ASHA worker or visit your nearest PHC. / AI सेवा उपलब्ध नहीं। अपने आशा कार्यकर्ता या नज़दीकी PHC से मिलें।';
     }
 
     await db.run('INSERT INTO symptoms (userId, villageId, symptoms, prediction) VALUES (?, ?, ?, ?)', [userId, villageId, text, prediction]);

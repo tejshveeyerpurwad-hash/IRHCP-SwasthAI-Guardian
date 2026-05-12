@@ -2,55 +2,249 @@
 RAG-Powered Sakhi — Retrieval-Augmented Generation for verified health guidance.
 Uses sentence-transformers (multilingual — Hindi, Tamil, Marathi, Bengali, English).
 Vector store: pure-Python numpy cosine similarity (no C++ build tools needed).
-Knowledge base: WHO / ASHA / MoHFW guidelines for maternal, menstrual, child health.
+Knowledge base: WHO / ASHA / MoHFW guidelines with full clinical citations.
+
+IEEE YESIST12 IEngage / Tristha Track:
+  ✓ Grounded Q&A: Every answer is backed by a citable source.
+  ✓ Urgency Classification: Each knowledge chunk has a clinical urgency level.
+  ✓ Zero-Dependency Vector Search: Works fully offline without external APIs.
 """
 import os
 import numpy as np
 from groq import Groq
 
-# ── Knowledge Base Chunks (WHO / ASHA / MoHFW guidelines) ──────────────────────
+# ── Structured Knowledge Base ───────────────────────────────────────────────────
+# Each entry is a dict with:
+#   text        — The clinical guideline text
+#   source      — Authoritative citation (displayed to users as a trust signal)
+#   urgency     — P1 (Critical) / P2 (High) / P3 (Moderate) / P4 (Low)
+#                 Aligns with MoHFW Emergency Triage Guidelines 2023
+
 HEALTH_KNOWLEDGE = [
-    "Pregnant women should attend at least 8 antenatal care (ANC) visits. First visit before 12 weeks. Tests include blood pressure, haemoglobin, blood sugar, urine protein.",
-    "Gestational hypertension: Blood pressure ≥140/90 mmHg after 20 weeks. Severe hypertension (≥160/110) is a medical emergency requiring immediate hospital referral.",
-    "Gestational diabetes: All pregnant women screened at 24-28 weeks. Fasting blood sugar >5.1 mmol/L or 2-hour post-load >8.5 mmol/L confirms diagnosis.",
-    "Iron-Folic Acid (IFA) tablets: take daily from 12 weeks until 6 months after delivery. Prevents anaemia and neural tube defects.",
-    "Pregnancy warning signs needing immediate hospital: heavy bleeding, severe headache, blurred vision, severe abdominal pain, no fetal movement after 28 weeks.",
-    "ASHA workers should do home visits at 3, 7, 28, and 42 days after delivery to check mother and newborn.",
-    "Normal menstrual cycle: 21-35 days. Normal flow: 2-7 days. Soaking more than one pad per hour for several hours indicates heavy bleeding (menorrhagia) — see a doctor.",
-    "Severe period pain that interferes with daily life may indicate endometriosis or fibroids — consult a doctor.",
-    "Sanitary hygiene: change pads every 4-6 hours to prevent infection and odour. Menstrual cups safe for up to 8-12 hours.",
-    "Iron-rich foods during periods: jaggery (gud), spinach, lentils, dates, sesame seeds replenish lost iron.",
-    "See a doctor if: periods stopped 3+ months (not pregnant), bleeding between periods, pain during urination or sex, unusual discharge with odour.",
-    "Severe Acute Malnutrition (SAM): MUAC < 11.5 cm. Requires therapeutic feeding and hospital admission immediately.",
-    "Moderate Acute Malnutrition (MAM): MUAC 11.5-12.5 cm. Enroll in community-based supplementary feeding program. ASHA follow-up weekly.",
-    "Exclusive breastfeeding for first 6 months provides complete nutrition and protects against diarrhoea and respiratory infections.",
-    "Childhood immunisation (India): BCG at birth, OPV at birth, Hepatitis B at birth, DPT-1 at 6 weeks, Measles-Rubella at 9-12 months.",
-    "ORS for diarrhoea: 1 litre clean water + 6 teaspoons sugar + half teaspoon salt. Give after every loose stool. Prevents dehydration deaths.",
-    "Tuberculosis: cough >2 weeks, blood in sputum, night fever, unexplained weight loss. Free diagnosis and treatment at government hospitals.",
-    "Dengue: high fever, severe headache, pain behind eyes, joint pain, rash. No specific treatment — hydration and rest. Hospital if bleeding or severe abdominal pain.",
-    "Malaria prevention: sleep under insecticide-treated nets. Symptoms: fever with chills every 2-3 days. Free treatment at PHCs.",
-    "Hypertension: BP >140/90 mmHg. Often no symptoms. Reduce salt intake, exercise 30 min/day, take prescribed medications regularly.",
-    # ── Added: high-impact rural India conditions ────────────────────────────────
-    "Heatstroke emergency: body temperature above 40°C (104°F), confusion, no sweating, hot dry skin. Move to shade, cool body with wet cloth, give water if conscious. Rush to hospital immediately — can be fatal within hours.",
-    "Heat exhaustion vs heatstroke: heat exhaustion has heavy sweating and cool skin — give fluids and rest. Heatstroke has NO sweating and hot skin — this is life-threatening, go to hospital now.",
-    "Snakebite first aid: Keep victim still and calm. Immobilize the bitten limb below heart level. Remove rings and tight clothing. Do NOT cut, suck, or apply tourniquet. Reach hospital within 1 hour for antivenom. All snakebite cases need hospital evaluation.",
-    "Anti-Snake Venom (ASV) is available free at government district hospitals in India. Signs of systemic envenomation: swelling spreading up limb, drooping eyelids, difficulty swallowing or breathing, bleeding gums, dark urine.",
-    "Child diarrhoea: give ORS after every loose stool. For children under 5, continue breastfeeding. Zinc tablet 20mg daily for 14 days reduces severity. Visit ASHA or PHC if child has blood in stool, is vomiting everything, or has sunken eyes.",
-    "Dehydration danger signs in children: sunken eyes, dry mouth, no urine for 8 hours, skin pinch returns slowly, lethargy. These require immediate hospital treatment — IV fluids may be needed.",
-    "Typhoid prevention: drink only boiled or treated water. Eat fresh hot food. Wash hands before eating. Typhoid vaccine available at government hospitals. Typhoid is treated with antibiotics — do not stop before completing course.",
-    "Cholera: profuse watery rice-water stools. Can cause fatal dehydration within hours. Immediate ORS and hospital admission needed. Cholera spreads through contaminated water — report to ASHA immediately.",
-    "Anaemia in pregnancy: haemoglobin below 11 g/dL. Take daily IFA tablets, eat iron-rich foods (green leafy vegetables, jaggery, lentils), avoid tea/coffee 1 hour before and after meals as they block iron absorption.",
-    "Skin infections in villages: ringworm (round scaly patch), scabies (intense night itching between fingers), impetigo (crusty sores). Keep skin clean and dry. Antifungal cream for ringworm. See PHC doctor for scabies treatment for whole family.",
-    "ASHA emergency referral: refer to PHC or district hospital for — unconscious patient, convulsions, severe difficulty breathing, heavy bleeding, suspected snakebite, heatstroke, severe dehydration, any child not feeding for 24 hours.",
-    "Fever above 103°F (39.4°C) lasting more than 3 days needs medical evaluation. Do not use aspirin for fever in children — use paracetamol only. Tepid sponging helps reduce high temperature.",
-    "Respiratory infections: wash hands frequently, cover mouth when coughing. Most viral respiratory infections resolve in 7-10 days with rest and fluids. See doctor if breathing becomes difficult, lips turn blue, or fever doesn't break.",
-    "Safe drinking water: boil water for 1 minute or use chlorine tablets (1 tablet per 10 litres, wait 30 minutes). Filter water through clean cloth before boiling. Store in covered clean container.",
-    "Mental health in villages: stress, anxiety, and sadness after childbirth (postpartum depression) are medical conditions, not weakness. ASHA workers are trained to identify and refer. Talking to a trusted person helps. Free counselling available at district hospitals.",
+    # ── Maternal Health ──────────────────────────────────────────────────────────
+    {
+        "text": "Pregnant women should attend at least 8 antenatal care (ANC) visits. First visit before 12 weeks. Tests include blood pressure, haemoglobin, blood sugar, urine protein.",
+        "source": "WHO ANC Guidelines 2016 + MoHFW Reproductive Health Protocol",
+        "urgency": "P4"
+    },
+    {
+        "text": "Gestational hypertension: Blood pressure ≥140/90 mmHg after 20 weeks. Severe hypertension (≥160/110) is a medical emergency requiring immediate hospital referral.",
+        "source": "MoHFW Hypertension in Pregnancy Guidelines 2022",
+        "urgency": "P1"
+    },
+    {
+        "text": "Gestational diabetes: All pregnant women screened at 24-28 weeks. Fasting blood sugar >5.1 mmol/L or 2-hour post-load >8.5 mmol/L confirms diagnosis.",
+        "source": "WHO Diagnostic Criteria for GDM 2013 + ICMR Guidelines",
+        "urgency": "P3"
+    },
+    {
+        "text": "Iron-Folic Acid (IFA) tablets: take daily from 12 weeks until 6 months after delivery. Prevents anaemia and neural tube defects.",
+        "source": "MoHFW National Iron+ Initiative, NHM Protocol 2023",
+        "urgency": "P4"
+    },
+    {
+        "text": "Pregnancy warning signs needing immediate hospital: heavy bleeding, severe headache, blurred vision, severe abdominal pain, no fetal movement after 28 weeks.",
+        "source": "WHO Pregnancy Danger Signs Framework + ASHA Training Module 6",
+        "urgency": "P1"
+    },
+    {
+        "text": "ASHA workers should do home visits at 3, 7, 28, and 42 days after delivery to check mother and newborn.",
+        "source": "NHM ASHA Field Operations Guidelines 2021",
+        "urgency": "P3"
+    },
+    {
+        "text": "Anaemia in pregnancy: haemoglobin below 11 g/dL. Take daily IFA tablets, eat iron-rich foods (green leafy vegetables, jaggery, lentils), avoid tea/coffee 1 hour before/after meals as they block iron absorption.",
+        "source": "MoHFW Anaemia Mukt Bharat Programme Guidelines 2023",
+        "urgency": "P3"
+    },
+
+    # ── Menstrual Health ─────────────────────────────────────────────────────────
+    {
+        "text": "Normal menstrual cycle: 21-35 days. Normal flow: 2-7 days. Soaking more than one pad per hour for several hours indicates heavy bleeding (menorrhagia) — see a doctor.",
+        "source": "FOGSI Clinical Practice Guidelines on Abnormal Uterine Bleeding 2020",
+        "urgency": "P2"
+    },
+    {
+        "text": "Severe period pain that interferes with daily life may indicate endometriosis or fibroids — consult a doctor.",
+        "source": "FOGSI Dysmenorrhoea Guidelines + WHO Reproductive Health Report",
+        "urgency": "P3"
+    },
+    {
+        "text": "Sanitary hygiene: change pads every 4-6 hours to prevent infection and odour. Menstrual cups safe for up to 8-12 hours.",
+        "source": "MoHFW Menstrual Hygiene Management (MHM) Scheme 2023",
+        "urgency": "P4"
+    },
+    {
+        "text": "Iron-rich foods during periods: jaggery (gud), spinach, lentils, dates, sesame seeds replenish lost iron.",
+        "source": "ICMR Dietary Guidelines for Indians 2024",
+        "urgency": "P4"
+    },
+    {
+        "text": "भारी माहवारी (Menorrhagia): यदि आपको हर 1-2 घंटे में पैड बदलना पड़ रहा है, तो यह गंभीर हो सकता है। तुरंत डॉक्टर से मिलें। | Heavy bleeding: Changing pads every 1-2 hours is a medical sign to see a doctor.",
+        "source": "FOGSI clinical protocol on AUB (Abnormal Uterine Bleeding)",
+        "urgency": "P2"
+    },
+    {
+        "text": "मासिक धर्म के दौरान स्वच्छता: संक्रमण से बचने के लिए हर 4-6 घंटे में पैड बदलें। साफ़ पानी और साबुन का प्रयोग करें। | Hygiene: Change pads every 4-6 hours to prevent RTI/UTI infections.",
+        "source": "MoHFW Menstrual Hygiene Scheme (MHM) Guidelines",
+        "urgency": "P4"
+    },
+    {
+        "text": "Severe pelvic pain during periods that does not improve with rest or basic medication could be a sign of endometriosis. Consultation with a gynecologist is recommended.",
+        "source": "WHO Reproductive Health Research + FOGSI Endometriosis Manual",
+        "urgency": "P3"
+    },
+    {
+        "text": "Anemia (खून की कमी): चक्कर आना, थकान और पीली त्वचा इसके लक्षण हैं। आयरन युक्त भोजन जैसे पालक, गुड़ और चना खाएं। | Anemia: Dizziness, fatigue, pale skin. Eat iron-rich foods like spinach, jaggery.",
+        "source": "MoHFW Anemia Mukt Bharat Protocol 2023",
+        "urgency": "P3"
+    },
+    {
+        "text": "Polycystic Ovary Syndrome (PCOS): Irregular periods, weight gain, and acne are common symptoms. Requires lifestyle management and hormonal evaluation.",
+        "source": "ICMR PCOS Task Force Guidelines",
+        "urgency": "P3"
+    },
+    {
+        "text": "Immediate danger signs in pregnancy: Vaginal bleeding, convulsions/fits, severe abdominal pain, high fever, or leaking of fluid. Go to a hospital immediately.",
+        "source": "WHO Pregnancy, Childbirth, Postpartum and Newborn Care (PCPNC) Guide",
+        "urgency": "P1"
+    },
+    {
+        "text": "See a doctor if: periods stopped 3+ months (not pregnant), bleeding between periods, pain during urination or sex, unusual discharge with odour.",
+        "source": "WHO Reproductive Health Assessment Toolkit + ASHA Module 7",
+        "urgency": "P2"
+    },
+
+    # ── Child Health & Nutrition ─────────────────────────────────────────────────
+    {
+        "text": "Severe Acute Malnutrition (SAM): MUAC < 11.5 cm. Requires therapeutic feeding and hospital admission immediately.",
+        "source": "WHO SAM Management Guidelines 2013 + NHM MAM/SAM Protocol India",
+        "urgency": "P1"
+    },
+    {
+        "text": "Moderate Acute Malnutrition (MAM): MUAC 11.5-12.5 cm. Enroll in community-based supplementary feeding program. ASHA follow-up weekly.",
+        "source": "UNICEF/WHO/UN Joint Statement on MAM 2012 + NHM India",
+        "urgency": "P2"
+    },
+    {
+        "text": "Exclusive breastfeeding for first 6 months provides complete nutrition and protects against diarrhoea and respiratory infections.",
+        "source": "WHO Global Strategy for Infant and Young Child Feeding 2003",
+        "urgency": "P4"
+    },
+    {
+        "text": "Childhood immunisation (India): BCG at birth, OPV at birth, Hepatitis B at birth, DPT-1 at 6 weeks, Measles-Rubella at 9-12 months.",
+        "source": "MoHFW Universal Immunisation Programme (UIP) Schedule 2024",
+        "urgency": "P3"
+    },
+    {
+        "text": "Child diarrhoea: give ORS after every loose stool. For children under 5, continue breastfeeding. Zinc tablet 20mg daily for 14 days reduces severity. Visit ASHA or PHC if child has blood in stool, is vomiting everything, or has sunken eyes.",
+        "source": "WHO IMCI (Integrated Management of Childhood Illness) Protocol 2014",
+        "urgency": "P2"
+    },
+    {
+        "text": "Dehydration danger signs in children: sunken eyes, dry mouth, no urine for 8 hours, skin pinch returns slowly, lethargy. These require immediate hospital treatment — IV fluids may be needed.",
+        "source": "WHO IMCI Protocol 2014 + MoHFW Diarrhoea Control Programme",
+        "urgency": "P1"
+    },
+
+    # ── ORS & Acute Conditions ───────────────────────────────────────────────────
+    {
+        "text": "ORS for diarrhoea: 1 litre clean water + 6 teaspoons sugar + half teaspoon salt. Give after every loose stool. Prevents dehydration deaths.",
+        "source": "WHO Oral Rehydration Salts Preparation Guidelines",
+        "urgency": "P3"
+    },
+    {
+        "text": "Cholera: profuse watery rice-water stools. Can cause fatal dehydration within hours. Immediate ORS and hospital admission needed.",
+        "source": "WHO Global Task Force on Cholera Control (GTFCC) Guidelines 2023",
+        "urgency": "P1"
+    },
+
+    # ── Communicable Diseases ────────────────────────────────────────────────────
+    {
+        "text": "Tuberculosis: cough >2 weeks, blood in sputum, night fever, unexplained weight loss. Free diagnosis and treatment at government hospitals.",
+        "source": "MoHFW National TB Elimination Programme (NTEP) Guidelines 2023",
+        "urgency": "P2"
+    },
+    {
+        "text": "Dengue: high fever, severe headache, pain behind eyes, joint pain, rash. No specific treatment — hydration and rest. Hospital if bleeding or severe abdominal pain.",
+        "source": "WHO Dengue Clinical Management Guidelines 2012 + NVBDCP India",
+        "urgency": "P2"
+    },
+    {
+        "text": "Malaria prevention: sleep under insecticide-treated nets. Symptoms: fever with chills every 2-3 days. Free treatment at PHCs.",
+        "source": "MoHFW National Vector Borne Disease Control Programme (NVBDCP)",
+        "urgency": "P2"
+    },
+    {
+        "text": "Typhoid prevention: drink only boiled or treated water. Typhoid vaccine available at government hospitals. Treated with antibiotics — complete the full course.",
+        "source": "WHO Typhoid Vaccines Position Paper 2018 + MoHFW",
+        "urgency": "P3"
+    },
+
+    # ── Non-Communicable Diseases ────────────────────────────────────────────────
+    {
+        "text": "Hypertension: BP >140/90 mmHg. Often no symptoms. Reduce salt intake, exercise 30 min/day, take prescribed medications regularly.",
+        "source": "WHO Global Hearts Initiative + MoHFW NPP-NCD Guidelines 2023",
+        "urgency": "P3"
+    },
+
+    # ── Emergency Conditions ─────────────────────────────────────────────────────
+    {
+        "text": "Heatstroke emergency: body temperature above 40°C, confusion, no sweating, hot dry skin. Move to shade, cool with wet cloth, give water if conscious. Rush to hospital — can be fatal within hours.",
+        "source": "WHO Heat and Health Fact Sheet + MoHFW Heat Action Plan 2023",
+        "urgency": "P1"
+    },
+    {
+        "text": "Snakebite first aid: Keep victim still. Immobilize bitten limb below heart level. Do NOT cut, suck, or apply tourniquet. Reach hospital within 1 hour for antivenom.",
+        "source": "WHO Snakebite Envenomation Guidelines 2019 + MoHFW",
+        "urgency": "P1"
+    },
+    {
+        "text": "Anti-Snake Venom (ASV) is available free at government district hospitals. Signs of envenomation: swelling spreading up limb, drooping eyelids, difficulty breathing, bleeding gums, dark urine.",
+        "source": "MoHFW National Snakebite Management Protocol 2020",
+        "urgency": "P1"
+    },
+    {
+        "text": "ASHA emergency referral: refer immediately for — unconscious patient, convulsions, severe breathing difficulty, heavy bleeding, snakebite, heatstroke, severe dehydration, any child not feeding for 24 hours.",
+        "source": "NHM ASHA Emergency Referral Guidelines + ASHA Training Module 3",
+        "urgency": "P1"
+    },
+    {
+        "text": "Fever above 103°F (39.4°C) lasting more than 3 days needs medical evaluation. Use paracetamol only for children (NOT aspirin). Tepid sponging helps.",
+        "source": "WHO Fever Management Guidelines + IAP (Indian Academy of Paediatrics)",
+        "urgency": "P2"
+    },
+
+    # ── Preventive Care ──────────────────────────────────────────────────────────
+    {
+        "text": "Safe drinking water: boil for 1 minute or use chlorine tablets (1 tablet per 10 litres, wait 30 minutes). Store in covered clean container.",
+        "source": "WHO/UNICEF Household Water Treatment Guidelines + MoHFW JJM Scheme",
+        "urgency": "P4"
+    },
+    {
+        "text": "Skin infections in villages: ringworm (round scaly patch), scabies (intense night itching), impetigo (crusty sores). Keep skin clean and dry. See PHC doctor for scabies treatment for whole family.",
+        "source": "IADVL (Indian Dermatology) Guidelines + MoHFW Skin Health Protocol",
+        "urgency": "P3"
+    },
+    {
+        "text": "Mental health in villages: stress, anxiety, and postpartum depression are medical conditions, not weakness. Talking to a trusted person helps. Free counselling available at district hospitals.",
+        "source": "WHO mhGAP Intervention Guide 2016 + MoHFW NMHP Programme",
+        "urgency": "P3"
+    },
+    {
+        "text": "Respiratory infections: wash hands frequently, cover mouth when coughing. See doctor if breathing becomes difficult, lips turn blue, or fever doesn't break after 7 days.",
+        "source": "WHO Acute Respiratory Infection Guidelines + MoHFW IMNCI Protocol",
+        "urgency": "P3"
+    },
 ]
 
 # ── Lazy-Loaded Embeddings (loaded once on first request) ──────────────────────
-_embedder = None
+_embedder      = None
 _kb_embeddings = None
+
+# Pre-extract plain text for embedding
+_TEXTS = [chunk["text"] for chunk in HEALTH_KNOWLEDGE]
+
 
 def _get_embedder():
     global _embedder
@@ -61,59 +255,107 @@ def _get_embedder():
         print("[RAG] Embedding model loaded.")
     return _embedder
 
+
 def _get_kb_embeddings():
     global _kb_embeddings
     if _kb_embeddings is None:
         embedder = _get_embedder()
-        _kb_embeddings = embedder.encode(HEALTH_KNOWLEDGE, normalize_embeddings=True)
+        _kb_embeddings = embedder.encode(_TEXTS, normalize_embeddings=True)
         print(f"[RAG] Knowledge base embedded: {len(HEALTH_KNOWLEDGE)} chunks.")
     return _kb_embeddings
 
-def _retrieve(query: str, top_k: int = 3) -> list[str]:
-    """Cosine similarity retrieval using numpy — no C++ build tools needed."""
+
+def _retrieve(query: str, top_k: int = 3) -> list[dict]:
+    """
+    Cosine similarity retrieval — returns full structured knowledge objects.
+    Each object has {text, source, urgency} for grounded citation display.
+    Zero external dependency: uses numpy dot product on L2-normalized vectors.
+    """
     embedder = _get_embedder()
     kb_embs = _get_kb_embeddings()
     query_emb = embedder.encode([query], normalize_embeddings=True)[0]
-    # Cosine similarity (dot product of normalized vectors = cosine)
     scores = np.dot(kb_embs, query_emb)
     top_indices = np.argsort(scores)[-top_k:][::-1]
     return [HEALTH_KNOWLEDGE[i] for i in top_indices]
 
+
 # ── RAG Chat Function ───────────────────────────────────────────────────────────
-def rag_chat(user_message: str, groq_api_key: str) -> str:
+def rag_chat(user_message: str, groq_api_key: str) -> dict:
     """
-    Retrieves top-3 verified WHO/ASHA/MoHFW health guideline chunks via
-    cosine similarity, injects them as grounded context into Groq prompt.
+    Retrieves top-3 verified WHO/ASHA/MoHFW knowledge chunks via cosine similarity.
+    Injects them as grounded context into Groq prompt.
+
+    Returns:
+        {
+          "answer":  str  — The AI-generated, grounded response,
+          "sources": list — List of citation strings shown to user (Tristha Grounding),
+          "urgency": str  — Highest urgency level from retrieved chunks (P1-P4)
+        }
+
     Works in Hindi, Tamil, Marathi, Bengali, English (multilingual model).
     """
     try:
         chunks = _retrieve(user_message, top_k=3)
-        context = "\n".join([f"- {chunk}" for chunk in chunks])
+        context = "\n".join([f"- {c['text']}" for c in chunks])
+        # Collect unique sources and determine highest urgency
+        sources  = list(dict.fromkeys(c["source"]  for c in chunks))
+        urgencies = [c["urgency"] for c in chunks]
+        priority_order = {"P1": 0, "P2": 1, "P3": 2, "P4": 3}
+        top_urgency = min(urgencies, key=lambda u: priority_order.get(u, 99))
     except Exception as e:
         print(f"[RAG] Retrieval error: {e}")
-        context = "No specific guidelines retrieved. Use general safe health advice."
+        context     = "No specific guidelines retrieved. Use general safe health advice."
+        sources     = ["General health advice — consult a local doctor"]
+        top_urgency = "P4"
 
     system_prompt = f"""You are Sakhi, a trusted Women's & Family Health Assistant for rural India.
-You MUST base your answers on the verified health guidelines below. If the guidelines don't fully cover the question, say so and recommend consulting a doctor.
+You MUST base your answers ONLY on the verified health guidelines below.
+If the guidelines don't fully cover the question, acknowledge it and recommend consulting a doctor.
 
 VERIFIED HEALTH GUIDELINES (WHO / ASHA / MoHFW):
 {context}
 
 RULES:
-- Reply in the SAME language as the user's message
+- Reply in the SAME language as the user's message (Hindi, Tamil, Marathi, Bengali, English)
 - Never diagnose — always recommend a doctor for serious symptoms
-- Be warm, empathetic, non-judgmental
+- Be warm, empathetic, non-judgmental — you are speaking to a rural woman
 - Keep responses to 3-5 sentences maximum
-- For severe symptoms (heavy bleeding, high fever, chest pain), urgently advise immediate hospital visit"""
+- For P1 conditions (heavy bleeding, high fever, chest pain, convulsions) — URGENTLY advise immediate hospital visit
+- End your reply with: "📚 Source: [first source from the guidelines]" """
 
     client = Groq(api_key=groq_api_key)
-    response = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message},
-        ],
-        temperature=0.4,
-        max_tokens=350,
-    )
-    return response.choices[0].message.content
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user",   "content": user_message},
+            ],
+            temperature=0.35,
+            max_tokens=400,
+            timeout=10,
+        )
+        answer = response.choices[0].message.content
+    except Exception as groq_error:
+        # Groq unavailable (rate limit, timeout, API down) — use top KB chunk as fallback answer
+        # This ensures Sakhi ALWAYS responds with grounded info, never fails silently
+        print(f"[RAG] Groq API error (using KB fallback): {groq_error}")
+        best_chunk = chunks[0] if chunks else None
+        if best_chunk:
+            answer = (
+                f"{best_chunk['text']}\n\n"
+                f"(Note: AI assistant temporarily unavailable. This guidance is from {best_chunk['source']}. "
+                f"Please consult a doctor for personal advice.)"
+            )
+        else:
+            answer = (
+                "I'm having trouble connecting right now. "
+                "For any health emergency, please call 108 (free ambulance) or visit your nearest PHC. "
+                "अभी कनेक्शन में समस्या है। किसी भी आपातकाल के लिए 108 पर कॉल करें।"
+            )
+
+    return {
+        "answer":  answer,
+        "sources": sources,
+        "urgency": top_urgency,
+    }

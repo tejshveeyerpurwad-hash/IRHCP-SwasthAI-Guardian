@@ -5,6 +5,12 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: BASE_URL,
+  // 🌐 Rural India 2G optimization: 8s timeout prevents infinite loading on slow networks.
+  // All components have offline fallbacks that trigger on network errors.
+  timeout: 8000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 api.interceptors.request.use((config) => {
@@ -14,5 +20,20 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Global response interceptor: surface network errors consistently
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.code === 'ECONNABORTED') {
+      // Timeout — likely 2G/poor connectivity
+      error.message = 'Network too slow. Using offline mode.';
+    } else if (!error.response) {
+      // No network
+      error.message = 'No internet connection. Offline mode active.';
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;

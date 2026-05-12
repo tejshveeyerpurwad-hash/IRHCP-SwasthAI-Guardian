@@ -13,29 +13,73 @@ const RISK_CONFIG = {
 const getRisk = (lvl) => RISK_CONFIG[lvl] || RISK_CONFIG['Low Risk'];
 const TRIM_LABELS = { 1: '1st Trimester', 2: '2nd Trimester', 3: '3rd Trimester' };
 
+function VitalSlider({ label, sublabel, unit, min, max, value, onChange, dangerAbove, warnAbove }) {
+  const pct = Math.round(((value - min) / (max - min)) * 100);
+  const color = value > dangerAbove ? 'bg-rose-500' : value > warnAbove ? 'bg-amber-400' : 'bg-emerald-500';
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between items-end">
+        <div>
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</label>
+          {sublabel && <p className="text-[9px] text-slate-300 font-medium">{sublabel}</p>}
+        </div>
+        <div className="flex items-baseline gap-1">
+          <span className={`text-xl font-black ${value > dangerAbove ? 'text-rose-600' : value > warnAbove ? 'text-amber-500' : 'text-emerald-600'}`}>{value}</span>
+          <span className="text-[10px] text-slate-400 font-bold">{unit}</span>
+        </div>
+      </div>
+      <div className="relative h-2 bg-slate-100 rounded-full">
+        <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      <input type="range" min={min} max={max} step={label.includes('Sugar') ? 0.1 : 1}
+        value={value} onChange={e => onChange(Number(e.target.value))}
+        className="w-full accent-emerald-600 cursor-pointer" />
+      <div className="flex justify-between text-[9px] text-slate-300 font-bold">
+        <span>{min}{unit}</span><span>{max}{unit}</span>
+      </div>
+    </div>
+  );
+}
+
 function MaternalForm({ onSave, onClose }) {
   const [form, setForm] = useState({ name: '', age: '', trimester: 1, dueDate: '' });
+  const [vitals, setVitals] = useState({ systolic_bp: 115, diastolic_bp: 75, bs: 5.0, heart_rate: 78 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const setV = (k, v) => setVitals(p => ({ ...p, [k]: v }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true); setError('');
     try {
-      const res = await api.post('/ngo/maternal', form);
-      onSave({ ...form, riskLevel: res.data.riskLevel });
+      const payload = {
+        ...form,
+        vitals: {
+          systolic_bp:  vitals.systolic_bp,
+          diastolic_bp: vitals.diastolic_bp,
+          bs:           vitals.bs,
+          body_temp:    98.6,        // standard assumption — not collected (minor field)
+          heart_rate:   vitals.heart_rate,
+        }
+      };
+      const res = await api.post('/ngo/maternal', payload);
+      onSave({ ...form, riskLevel: res.data.riskLevel, vitals });
     } catch (err) {
       setError(err.response?.data?.error || 'Maternal Risk AI is currently unavailable. Please consult a doctor immediately.');
     } finally { setLoading(false); }
   };
 
+  // Live danger flag for the BP reading
+  const bpDanger = vitals.systolic_bp >= 160 || vitals.diastolic_bp >= 110;
+  const bpWarning = vitals.systolic_bp >= 140 || vitals.diastolic_bp >= 90;
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-50 flex items-center justify-center p-4 overflow-y-auto"
       onClick={(e) => e.target === e.currentTarget && onClose()}>
       <motion.div initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 20 }}
-        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xl p-8 relative">
+        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xl p-8 relative my-4">
         <button onClick={onClose} className="absolute top-6 right-6 w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-rose-600 transition-all">
           <X className="w-4 h-4" />
         </button>
@@ -46,41 +90,88 @@ function MaternalForm({ onSave, onClose }) {
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">AI Risk Assessment · WHO Protocol</p>
           </div>
         </div>
+
+        {/* Live BP danger banner */}
+        {bpDanger && (
+          <div className="mb-4 p-3 bg-rose-50 border-2 border-rose-400 rounded-2xl flex items-center gap-3 animate-pulse">
+            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+            <p className="text-xs font-black text-rose-700">⚠️ SEVERE HYPERTENSION DETECTED — BP ≥160/110. Refer to hospital IMMEDIATELY per MoHFW Protocol.</p>
+          </div>
+        )}
+        {!bpDanger && bpWarning && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-300 rounded-2xl flex items-center gap-3">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            <p className="text-xs font-bold text-amber-700">Gestational hypertension risk — BP ≥140/90. Monitor closely and consult OB/GYN.</p>
+          </div>
+        )}
+
         {error && (
           <div className="mb-4 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3">
             <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
             <p className="text-xs font-bold text-rose-700">{error}</p>
           </div>
         )}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Patient Full Name</label>
-              <input className="input-field" placeholder="e.g. Sunita Devi" value={form.name} onChange={e => set('name', e.target.value)} required />
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+
+          {/* ── Section 1: Patient Info ─── */}
+          <div className="p-4 bg-slate-50 rounded-2xl space-y-4">
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Patient Information</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Patient Full Name</label>
+                <input className="input-field" placeholder="e.g. Sunita Devi" value={form.name} onChange={e => set('name', e.target.value)} required />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Age (Years)</label>
+                <input type="number" className="input-field" placeholder="e.g. 24" min="10" max="60" value={form.age} onChange={e => set('age', e.target.value)} required />
+              </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Age (Years)</label>
-              <input type="number" className="input-field" placeholder="e.g. 24" value={form.age} onChange={e => set('age', e.target.value)} required />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Trimester</label>
+                <select className="input-field" value={form.trimester} onChange={e => set('trimester', Number(e.target.value))}>
+                  <option value={1}>1st Trimester (0–12 wks)</option>
+                  <option value={2}>2nd Trimester (13–26 wks)</option>
+                  <option value={3}>3rd Trimester (27–40 wks)</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Estimated Due Date</label>
+                <input type="date" className="input-field" value={form.dueDate} onChange={e => set('dueDate', e.target.value)} required />
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Trimester</label>
-              <select className="input-field" value={form.trimester} onChange={e => set('trimester', Number(e.target.value))}>
-                <option value={1}>1st Trimester (0–12 wks)</option>
-                <option value={2}>2nd Trimester (13–26 wks)</option>
-                <option value={3}>3rd Trimester (27–40 wks)</option>
-              </select>
+
+          {/* ── Section 2: Clinical Vitals ─── */}
+          <div className="p-4 bg-slate-50 rounded-2xl space-y-6">
+            <div className="flex items-center gap-2">
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Clinical Vitals (Drag sliders)</p>
+              <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[8px] font-black uppercase tracking-widest rounded-full border border-blue-100">WHO Protocol</span>
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Estimated Due Date</label>
-              <input type="date" className="input-field" value={form.dueDate} onChange={e => set('dueDate', e.target.value)} required />
-            </div>
+
+            <VitalSlider label="Systolic Blood Pressure" sublabel="Upper number of BP reading"
+              unit=" mmHg" min={80} max={200} value={vitals.systolic_bp}
+              onChange={v => setV('systolic_bp', v)} dangerAbove={159} warnAbove={139} />
+
+            <VitalSlider label="Diastolic Blood Pressure" sublabel="Lower number of BP reading"
+              unit=" mmHg" min={40} max={130} value={vitals.diastolic_bp}
+              onChange={v => setV('diastolic_bp', v)} dangerAbove={109} warnAbove={89} />
+
+            <VitalSlider label="Fasting Blood Sugar" sublabel="Gestational diabetes screen (≥5.1 = risk)"
+              unit=" mmol/L" min={3.0} max={15.0} value={vitals.bs}
+              onChange={v => setV('bs', v)} dangerAbove={8.4} warnAbove={5.0} />
+
+            <VitalSlider label="Heart Rate" sublabel="Resting pulse"
+              unit=" bpm" min={50} max={130} value={vitals.heart_rate}
+              onChange={v => setV('heart_rate', v)} dangerAbove={110} warnAbove={95} />
           </div>
+
           <div className="p-3 bg-blue-50 rounded-2xl border border-blue-100">
-            <p className="text-[10px] font-bold text-blue-500">ℹ️ Risk is scored using WHO maternal guidelines (age, BP, blood sugar, heart rate, temperature).</p>
+            <p className="text-[10px] font-bold text-blue-500">ℹ️ Risk is scored using WHO maternal guidelines. BP ≥140/90 → gestational hypertension. Blood sugar ≥5.1 mmol/L → GDM screening required.</p>
           </div>
-          <button type="submit" disabled={loading} className="w-full py-4 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-3">
+
+          <button type="submit" disabled={loading} className="w-full py-4 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-lg shadow-rose-100">
             {loading ? <><RefreshCw className="w-4 h-4 animate-spin" /> Analyzing Risk...</> : <><HeartPulse className="w-4 h-4" /> Run AI Risk Assessment</>}
           </button>
         </form>

@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
+import DiSHAConsentModal, { useConsentGiven } from './components/DiSHAConsentModal';
 
 // Pages
 import LoginPage from './pages/LoginPage';
@@ -26,12 +28,27 @@ import OfflineToast from './components/OfflineToast';
 // Protected Route wrapper to ensure only authorized users access roles
 const ProtectedRoute = ({ children, allowedRole }) => {
   const { user } = useAuth();
-  
   if (!user) return <Navigate to="/login" replace />;
   if (allowedRole && user.role !== allowedRole) return <Navigate to="/" replace />;
-  
   return children;
 };
+
+// Shows DISHA consent modal once per device after first login
+function ConsentGate({ children }) {
+  const { user } = useAuth();
+  const [consented, setConsented] = useState(useConsentGiven);
+  const needsConsent = user && !consented;
+  return (
+    <>
+      {children}
+      <AnimatePresence>
+        {needsConsent && (
+          <DiSHAConsentModal onConsent={() => setConsented(true)} />
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
 
 // Layout wrapper to include footer on all pages
 const LayoutWrapper = ({ children }) => (
@@ -45,6 +62,7 @@ export default function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
+        <ConsentGate>
         <Router>
           <div className="font-inter">
             <Routes>
@@ -126,6 +144,7 @@ export default function App() {
             <OfflineToast />
           </div>
         </Router>
+        </ConsentGate>
       </AuthProvider>
     </LanguageProvider>
   );

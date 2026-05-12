@@ -19,6 +19,8 @@ export default function AdminDashboard() {
   const [summary, setSummary] = useState({ totalUsers: 0, totalNgos: 0, totalRequests: 0, emergencyCount: 0, sanitaryCount: 0 });
   const [ambulances, setAmbulances] = useState([]);
   const [ambLoading, setAmbLoading] = useState(true);
+  const [outbreaks, setOutbreaks] = useState([]);
+  const [outbreakLoading, setOutbreakLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -48,10 +50,27 @@ export default function AdminDashboard() {
       }
     };
 
+    const fetchOutbreaks = async () => {
+      try {
+        setOutbreakLoading(true);
+        const res = await api.get('/admin/outbreaks');
+        setOutbreaks(res.data.outbreaks || []);
+      } catch (err) {
+        console.error('Failed to fetch outbreak data:', err);
+      } finally {
+        setOutbreakLoading(false);
+      }
+    };
+
     fetchStats();
     fetchAmbulances();
+    fetchOutbreaks();
 
-    const interval = setInterval(() => { fetchStats(); fetchAmbulances(); }, 30000);
+    const interval = setInterval(() => { 
+      fetchStats(); 
+      fetchAmbulances(); 
+      fetchOutbreaks();
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -271,26 +290,84 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest">Outbreak Detection Logic</h3>
-              </div>
-              <div className="space-y-3">
-                {[
-                  { step: '1', t: 'Symptom Submitted', d: 'Villager submits symptoms via the app or voice.' },
-                  { step: '2', t: 'AI Classification', d: 'Random Forest model predicts likely disease with 91.3% accuracy.' },
-                  { step: '3', t: 'Cluster Detection', d: 'Backend counts identical diseases from same village in last 24h.' },
-                  { step: '4', t: 'Alert Triggered', d: 'If count ≥ 5, admin and NGO workers receive an outbreak warning.' },
-                ].map(item => (
-                  <div key={item.step} className="flex gap-3 items-start">
-                    <div className="w-7 h-7 bg-emerald-50 text-emerald-700 rounded-full flex items-center justify-center font-black text-xs shrink-0 mt-0.5">{item.step}</div>
-                    <div>
-                      <p className="font-black text-slate-900 text-sm">{item.t}</p>
-                      <p className="text-xs text-slate-400 font-medium mt-0.5">{item.d}</p>
-                    </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Outbreak Alerts List */}
+              <div className="lg:col-span-2 bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[500px]">
+                <div className="p-6 border-b border-slate-50 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
+                    <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest">Active AI Outbreak Alerts</h3>
                   </div>
-                ))}
+                  <span className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[10px] font-black uppercase tracking-widest">
+                    {outbreaks.length} Detected
+                  </span>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  {outbreakLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : outbreaks.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-center opacity-40">
+                      <Shield className="w-12 h-12 mb-4" />
+                      <p className="font-black uppercase tracking-widest text-xs">No Outbreaks Detected</p>
+                      <p className="text-xs font-medium mt-1">Village clusters are within normal seasonal range.</p>
+                    </div>
+                  ) : (
+                    outbreaks.map((ob) => (
+                      <div key={ob.id} className="p-5 border border-rose-100 bg-rose-50/30 rounded-2xl relative overflow-hidden group hover:border-rose-300 transition-all">
+                        <div className="absolute right-4 top-4">
+                          <AlertTriangle className="w-5 h-5 text-rose-500" />
+                        </div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <MapPin className="w-3.5 h-3.5 text-rose-600" />
+                          <p className="font-black text-rose-900 text-sm">Village ID: {ob.villageId}</p>
+                        </div>
+                        <h4 className="text-lg font-black text-slate-900 mb-1">{ob.classification} Detected</h4>
+                        <p className="text-xs text-slate-500 font-medium mb-3 leading-relaxed">
+                          Pattern: {ob.symptomPattern}
+                        </p>
+                        <div className="p-3 bg-white border border-rose-200 rounded-xl">
+                          <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-1">Recommended Action</p>
+                          <p className="text-xs text-slate-700 font-bold">{ob.action}</p>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          <span>{new Date(ob.detectedAt).toLocaleString()}</span>
+                          <span className="text-emerald-600">AI Confidence: {(ob.confidence * 100).toFixed(0)}%</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Logic Card */}
+              <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 h-fit">
+                <div className="flex items-center gap-2 mb-6">
+                  <Activity className="w-4 h-4 text-emerald-500" />
+                  <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest">Surveillance Logic</h3>
+                </div>
+                <div className="space-y-6">
+                  {[
+                    { step: '1', t: 'Symptom Ingestion', d: 'Villager submits symptoms via app/voice.' },
+                    { step: '2', t: 'Pattern Mapping', d: 'AI classifies cases against MoHFW disease database.' },
+                    { step: '3', t: 'Cluster Trigger', d: 'Agent detects ≥ 3 cases in 24h at same village node.' },
+                    { step: '4', t: 'District Alert', d: 'Outbreak confirmed via Groq Llama-3.1 epidemiology model.' },
+                  ].map(item => (
+                    <div key={item.step} className="flex gap-4 items-start">
+                      <div className="w-8 h-8 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-xs shrink-0">{item.step}</div>
+                      <div>
+                        <p className="font-black text-slate-900 text-[13px]">{item.t}</p>
+                        <p className="text-[11px] text-slate-400 font-medium mt-1 leading-relaxed">{item.d}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-8 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                  <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-1">Current Status</p>
+                  <p className="text-xs font-bold text-emerald-900 leading-relaxed">Agent is actively monitoring 1,200+ regional health nodes.</p>
+                </div>
               </div>
             </div>
           </div>

@@ -152,8 +152,14 @@ async def rag_sakhi_chat(data: ChatInput):
     if not groq_key:
         raise HTTPException(status_code=503, detail="GROQ_API_KEY not configured.")
     try:
-        reply = rag_chat(data.message, groq_key)
-        return {"reply": reply, "engine": "RAG-Groq (Llama-3.1)", "grounded": True}
+        result  = rag_chat(data.message, groq_key)
+        return {
+            "reply":   result["answer"],
+            "sources": result["sources"],   # e.g. ["WHO ANC Guidelines 2016", ...]
+            "urgency": result["urgency"],   # P1 / P2 / P3 / P4
+            "engine":  "RAG-Groq (Llama-3.1)",
+            "grounded": True,
+        }
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"RAG chat error: {str(e)}")
 

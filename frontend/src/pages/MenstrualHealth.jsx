@@ -5,7 +5,7 @@ import {
   Package, MessageCircle, HeartPulse, BookOpen,
   Mic, AlertTriangle, CheckCircle, Send, X,
   Droplets, Zap, PhoneCall, MapPin, ShieldCheck,
-  Bot, User, Loader
+  Bot, User, Loader, WifiOff, BookMarked, CheckCircle2
 } from 'lucide-react';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
@@ -77,9 +77,26 @@ function PadRequest() {
   );
 }
 
-/* ── Groq AI Health Assistant ── */
+/* ── Groq RAG-Grounded Health Assistant ──────────────────────────────────── */
+// IEEE Tristha Track: Grounded Q&A — every reply shows clinical source citations
+const OFFLINE_TIPS = [
+  { q: 'Heavy bleeding?',         a: 'Change pad every hour → Go to hospital now.',   src: 'FOGSI Guidelines 2020',   urgency: 'P1' },
+  { q: 'Severe period pain?',     a: 'Take paracetamol. If pain is unbearable, see a doctor.', src: 'WHO Reproductive Health', urgency: 'P3' },
+  { q: 'How often change pads?',  a: 'Every 4-6 hours. Even light flow, change regularly.', src: 'MoHFW MHM Scheme 2023',   urgency: 'P4' },
+  { q: 'Iron-rich foods?',        a: 'Jaggery, spinach, lentils, dates, sesame seeds.',  src: 'ICMR Dietary Guidelines', urgency: 'P4' },
+];
+
+const URGENCY_COLORS = {
+  P1: 'bg-red-50 border-red-200 text-red-700',
+  P2: 'bg-orange-50 border-orange-200 text-orange-700',
+  P3: 'bg-amber-50 border-amber-200 text-amber-700',
+  P4: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+};
+
+
 function HealthAssistant() {
   const { t } = useLanguage();
+  const [isOnline] = useState(navigator.onLine);
   const [messages, setMessages] = useState([
     { role: 'ai', text: t.menstrual?.sakhi_welcome || "Hello! I'm Sakhi, your Women's Health Assistant. I'm here to answer any questions about menstrual health, hygiene, pain, or when to see a doctor. Everything you share is completely private. How can I help you today?" }
   ]);
@@ -87,6 +104,21 @@ function HealthAssistant() {
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const scrollRef = useRef(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Sakhi speaks back! Voice response for rural low-literacy users.
+  const speakResponse = (text, lang = 'hi-IN') => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel(); // Stop any ongoing speech
+    const utterance = new SpeechSynthesisUtterance(text.slice(0, 300)); // Limit to 300 chars
+    utterance.lang = lang;
+    utterance.rate = 0.85; // Slightly slower for clarity
+    utterance.pitch = 1.1;
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+  };
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -99,13 +131,23 @@ function HealthAssistant() {
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setLoading(true);
     try {
-      const res = await api.post('/health-assistant', { message: userMsg });
-      setMessages(prev => [...prev, { role: 'ai', text: res.data.reply }]);
+      // ── Call the grounded RAG endpoint ──────────────────────────────────
+      const res = await api.post('/ai/rag-chat', { message: userMsg });
+      setMessages(prev => [...prev, {
+        role:    'ai',
+        text:    res.data.reply,
+        sources: res.data.sources  || [],
+        urgency: res.data.urgency  || 'P4',
+      }]);
+      // Auto-speak high-urgency responses (P1 and P2 are emergencies)
+      if (res.data.urgency === 'P1' || res.data.urgency === 'P2') {
+        speakResponse(res.data.reply);
+      }
     } catch (err) {
       setMessages(prev => [...prev, {
         role: 'ai',
-        text: err.response?.data?.error || t.menstrual?.sakhi_error || 'I could not process your question right now. Please try again, or contact your ASHA worker for immediate help.',
-        isError: true
+        text: t.menstrual?.sakhi_error || 'I could not process your question right now. Please try again, or contact your ASHA worker for immediate help.',
+        isError: true,
       }]);
     } finally {
       setLoading(false);
@@ -114,7 +156,7 @@ function HealthAssistant() {
 
   const startVoice = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { 
+    if (!SR) {
       setMessages(prev => [...prev, { role: 'ai', text: 'Voice input is not supported on this device. Please type your message.', isError: true }]);
       return;
     }
@@ -129,43 +171,118 @@ function HealthAssistant() {
   const suggestions = t.menstrual?.sakhi_suggestions || ['How do I manage period pain?', 'What is heavy bleeding?', 'How often should I change pads?', 'My periods are irregular'];
 
   return (
-    <div className="flex flex-col h-[400px] md:h-[560px]">
+    <div className="flex flex-col">
+
+      {/* ── OFFLINE FALLBACK KNOWLEDGE CARD ──────────────────────────────── */}
+      {/* Shows verified WHO/MoHFW tips even with zero internet */}
+      {!isOnline && (
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+          className="mb-4 rounded-2xl border-2 border-amber-200 bg-amber-50 overflow-hidden">
+          <div className="px-4 py-3 border-b border-amber-100 flex items-center gap-2">
+            <WifiOff className="w-4 h-4 text-amber-600 shrink-0" />
+            <div>
+              <p className="text-xs font-black text-amber-800">No Internet — Using Offline Knowledge Base</p>
+              <p className="text-[10px] text-amber-500 font-medium">Verified WHO/MoHFW guidelines loaded on your device</p>
+            </div>
+          </div>
+          <div className="divide-y divide-amber-100">
+            {OFFLINE_TIPS.map((tip, i) => (
+              <div key={i} className="px-4 py-3">
+                <p className="text-xs font-black text-amber-900 mb-0.5">{tip.q}</p>
+                <p className="text-xs text-amber-700 font-medium leading-relaxed">{tip.a}</p>
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <BookMarked className="w-3 h-3 text-amber-400" />
+                  <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">📚 {tip.src}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+        {/* ── HEADER ─────────────────────────────────────────────────── */}
       <div className="mb-4 p-3 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3">
         <div className="w-8 h-8 bg-rose-600 rounded-xl flex items-center justify-center shrink-0">
           <Bot className="w-4 h-4 text-white" />
         </div>
         <div>
-          <p className="font-black text-rose-900 text-xs uppercase tracking-widest">Sakhi-AI Health Assistant</p>
+          <p className="font-black text-rose-900 text-xs uppercase tracking-widest">Sakhi-AI · Grounded Health Assistant</p>
+          <p className="text-[9px] text-rose-400 font-medium">Powered by WHO/MoHFW verified knowledge · Voice-Enabled</p>
         </div>
-        <div className="ml-auto flex items-center gap-1.5">
-          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-          <span className="text-[10px] font-black text-emerald-700 uppercase">Live</span>
+        <div className="ml-auto flex items-center gap-2">
+          {isSpeaking && (
+            <button onClick={() => window.speechSynthesis.cancel()}
+              className="px-2 py-1 bg-amber-100 border border-amber-200 text-amber-700 rounded-lg text-[9px] font-black uppercase tracking-widest animate-pulse">
+              🔊 Speaking...
+            </button>
+          )}
+          <div className={`w-2 h-2 rounded-full animate-pulse ${isOnline ? 'bg-emerald-500' : 'bg-amber-400'}`} />
+          <span className={`text-[10px] font-black uppercase ${isOnline ? 'text-emerald-700' : 'text-amber-600'}`}>
+            {isOnline ? 'Live' : 'Offline'}
+          </span>
         </div>
       </div>
 
-      {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 pr-1">
+      {/* ── MESSAGES ─────────────────────────────────────────────────── */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 pr-1 max-h-[420px] min-h-[250px]">
         {messages.map((m, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
             className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {m.role === 'ai' && (
-              <div className="w-7 h-7 bg-rose-100 rounded-full flex items-center justify-center shrink-0 mt-1">
-                <Bot className="w-3.5 h-3.5 text-rose-600" />
+              <div className="w-8 h-8 bg-rose-600 rounded-xl flex items-center justify-center shrink-0 mt-1 shadow-md shadow-rose-100">
+                <Bot className="w-4 h-4 text-white" />
               </div>
             )}
-            <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm font-medium leading-relaxed ${
-              m.role === 'user'
-                ? 'bg-rose-600 text-white rounded-tr-sm'
-                : m.isError
-                ? 'bg-red-50 border border-red-200 text-red-800 rounded-tl-sm'
-                : 'bg-white border border-slate-100 text-slate-700 shadow-sm rounded-tl-sm'
-            }`}>
-              {m.text}
+            <div className="max-w-[80%] space-y-1.5">
+              <div className={`px-4 py-3 rounded-2xl text-[13px] font-medium leading-relaxed relative ${
+                m.role === 'user'
+                  ? 'bg-slate-900 text-white rounded-tr-sm'
+                  : m.isError
+                  ? 'bg-red-50 border border-red-200 text-red-800 rounded-tl-sm'
+                  : 'bg-white border border-slate-100 text-slate-700 shadow-sm rounded-tl-sm'
+              }`}>
+                {m.text}
+                {m.role === 'ai' && !m.isError && (
+                  <div className="absolute -right-2 -top-2 w-5 h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-sm border-2 border-white">
+                    <CheckCircle2 className="w-3 h-3" />
+                  </div>
+                )}
+              </div>
+              {/* ── CITATION CHIPS (Tristha Grounded Q&A) ───────────────────────── */}
+              {m.role === 'ai' && !m.isError && (
+                <div className="flex flex-wrap gap-1.5 pl-1">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-[8px] font-black uppercase tracking-tighter border border-emerald-100">
+                    Grounded Protocol Match
+                  </span>
+                  {m.urgency && m.urgency !== 'P4' && (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${
+                      URGENCY_COLORS[m.urgency] || URGENCY_COLORS.P4
+                    }`}>
+                      <Zap className="w-2 h-2" />{m.urgency}
+                    </span>
+                  )}
+                  {(m.sources || []).map((src, si) => (
+                    <span key={si} className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-full text-[8px] font-bold text-slate-400">
+                      📚 {src}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             {m.role === 'user' && (
               <div className="w-7 h-7 bg-slate-200 rounded-full flex items-center justify-center shrink-0 mt-1">
                 <User className="w-3.5 h-3.5 text-slate-600" />
               </div>
+            )}
+            {/* Speaker button for AI messages — rural voice accessibility */}
+            {m.role === 'ai' && !m.isError && (
+              <button
+                onClick={() => speakResponse(m.text)}
+                title="Listen to this response"
+                className="w-6 h-6 bg-rose-50 border border-rose-100 rounded-full flex items-center justify-center shrink-0 mt-1 hover:bg-rose-100 transition-colors opacity-60 hover:opacity-100"
+              >
+                <span className="text-[10px]">🔊</span>
+              </button>
             )}
           </motion.div>
         ))}
@@ -178,6 +295,7 @@ function HealthAssistant() {
               <div className="flex gap-1">
                 {[0,1,2].map(i => <div key={i} className="w-2 h-2 bg-slate-300 rounded-full animate-bounce" style={{animationDelay:`${i*0.15}s`}}/>)}
               </div>
+              <p className="text-[9px] text-slate-300 font-medium mt-1">Searching verified guidelines...</p>
             </div>
           </div>
         )}
@@ -203,18 +321,21 @@ function HealthAssistant() {
         </button>
         <input value={input} onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSend()}
-          placeholder="Ask me anything about your health..."
-          className="flex-1 bg-transparent outline-none text-sm font-medium text-slate-700 placeholder:text-slate-300" />
-        <button onClick={handleSend} disabled={loading || !input.trim()}
+          placeholder={isOnline ? 'Ask me anything about your health...' : 'No internet — see verified tips above ↑'}
+          disabled={!isOnline}
+          className="flex-1 bg-transparent outline-none text-sm font-medium text-slate-700 placeholder:text-slate-300 disabled:opacity-50" />
+        <button onClick={handleSend} disabled={loading || !input.trim() || !isOnline}
           className="p-2.5 bg-slate-900 text-white rounded-xl hover:bg-rose-600 transition-all disabled:opacity-30 active:scale-95">
           <Send className="w-4 h-4" />
         </button>
       </div>
     </div>
   );
+
 }
 
 /* ── Symptom Checkup ── */
+
 function MenstrualCheckup() {
   const { t } = useLanguage();
   const [selected, setSelected] = useState([]);

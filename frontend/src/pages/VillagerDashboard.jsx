@@ -140,14 +140,28 @@ export default function VillagerDashboard() {
     setAmbLoading(true);
     setAmbStatus('');
     setAmbError(false);
+
+    // Step 1: Get real GPS coordinates
+    let locationStr = 'Location unavailable — District Emergency Dispatch';
     try {
-      await api.post('/villager/ambulance', { 
+      const position = await new Promise((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 6000 })
+      );
+      const { latitude, longitude } = position.coords;
+      locationStr = `GPS: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+    } catch {
+      // GPS denied or unavailable — fall back gracefully
+      locationStr = 'GPS unavailable — please tell location verbally to dispatcher';
+    }
+
+    try {
+      await api.post('/villager/ambulance', {
         name: user?.name || 'Villager',
-        location: 'GPS Pending — District Request', 
+        location: locationStr,
         priority: 'High',
-        symptoms: 'Emergency dispatch from app'
+        symptoms: 'Emergency dispatch from SwasthAI app',
       });
-      setAmbStatus('Dispatch Hub Notified. ETA: 12m.');
+      setAmbStatus(`Dispatch Hub Notified. ETA: 12m. 📍 ${locationStr}`);
     } catch (err) {
       setAmbError(true);
       setAmbStatus('Internet connection problem / इंटरनेट कनेक्शन की समस्या');
@@ -362,15 +376,16 @@ export default function VillagerDashboard() {
                     <Camera className="w-7 h-7" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black text-white uppercase tracking-tighter leading-none mb-1">{t.dashboardExt?.skin_ai || 'Skin AI Node'}</h2>
-                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{t.dashboardExt?.skin_ai_desc || 'Precision Imagery Scan'}</p>
+                    <h2 className="text-xl font-black text-white uppercase tracking-tighter leading-none mb-1">{t.dashboardExt?.skin_ai || 'Tvacha Jaanch / Skin Check'}</h2>
+                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{t.dashboardExt?.skin_ai_desc || 'Tasveer Se Bimari Pehchaanein'}</p>
                   </div>
                 </div>
 
                 {!skinPreview ? (
                   <label className="flex-1 min-h-[160px] border-2 border-dashed border-emerald-500/30 bg-white/5 hover:bg-white/10 transition-all rounded-[2rem] flex flex-col items-center justify-center cursor-pointer mb-8 group/upload">
-                    <Upload className="w-10 h-10 text-emerald-500 mb-4 group-hover/upload:-translate-y-2 transition-transform" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">Deploy Image Probe</span>
+                    <Camera className="w-10 h-10 text-emerald-500 mb-4 group-hover/upload:-translate-y-2 transition-transform" />
+                    <span className="text-[11px] font-black text-emerald-300 text-center leading-snug">📸 Tasveer Lein ya Upload Karen</span>
+                    <span className="text-[9px] font-bold text-emerald-500/60 mt-1">Take or upload a photo of skin problem</span>
                     <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                   </label>
                 ) : (
@@ -383,9 +398,9 @@ export default function VillagerDashboard() {
 
                 <button
                   onClick={checkSkinDisease}
-                  className="w-full h-14 bg-emerald-500 hover:bg-emerald-400 text-[#0A2E24] rounded-[1.2rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95"
+                  className="w-full h-14 bg-emerald-500 hover:bg-emerald-400 text-[#0A2E24] rounded-[1.2rem] font-black text-[11px] shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95"
                 >
-                  <Scan className="w-4 h-4" /> {t.dashboardExt?.open || 'Open Skin AI Scanner'}
+                  <Camera className="w-4 h-4" /> {t.dashboardExt?.open || 'Tvacha Jaanch Karo / Check Skin'}
                 </button>
               </div>
             </motion.div>
@@ -510,6 +525,23 @@ export default function VillagerDashboard() {
               </div>
 
 
+
+              {/* Child Nutrition */}
+              <div
+                onClick={() => navigate('/symptoms')}
+                className="p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group cursor-pointer"
+              >
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-all">
+                    <Activity className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-base font-black text-slate-900 uppercase tracking-tighter">{t.diseaseChecker?.title || 'Bimari Jaanch'}</h3>
+                </div>
+                <p className="text-slate-400 font-bold text-xs leading-relaxed">Apne lakshan chunkar AI se poochhein — full page with voice input. / Full symptom check with AI + voice.</p>
+                <div className="mt-4 flex items-center gap-2 text-amber-600 text-[10px] font-black uppercase tracking-widest">
+                  {t.dashboardExt?.open || 'Open'} <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
 
               {/* My Profile */}
               <div
