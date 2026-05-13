@@ -135,9 +135,9 @@ function HealthAssistant() {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || loading) return;
-    const userMsg = input.trim();
+  const handleSend = async (overrideText = null) => {
+    const userMsg = (overrideText || input).trim();
+    if (!userMsg || loading) return;
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setLoading(true);
@@ -188,6 +188,10 @@ function HealthAssistant() {
         const text = e.results[0][0].transcript;
         setInput(text); 
         setIsListening(false); 
+        // Auto-send for a better "Assistant" experience
+        if (text.trim()) {
+          handleSend(text);
+        }
       };
       rec.onerror = (e) => {
         console.error('[Sakhi Voice Error]', e.error);
