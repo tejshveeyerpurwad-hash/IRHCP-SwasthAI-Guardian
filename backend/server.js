@@ -11,6 +11,10 @@ import axios from 'axios';
 import path from 'path';
 import cluster from 'cluster';
 import os from 'os';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -826,14 +830,16 @@ Rules: respond in user's language; never diagnose; be warm and concise (3-5 sent
   });
 
   // ── STATIC FILE SERVING (Production) ──────────────────────────────────
-  const __dirname = path.resolve();
   if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, 'frontend', 'dist')));
+    const frontendPath = path.resolve(__dirname, '../frontend/dist');
+    console.log('Serving production frontend from:', frontendPath);
+    
+    app.use(express.static(frontendPath));
 
     app.get('*', (req, res) => {
       // API routes should not be caught by static file server
       if (!req.path.startsWith('/api')) {
-        res.sendFile(path.join(__dirname, 'frontend', 'dist', 'index.html'));
+        res.sendFile(path.join(frontendPath, 'index.html'));
       }
     });
   }
