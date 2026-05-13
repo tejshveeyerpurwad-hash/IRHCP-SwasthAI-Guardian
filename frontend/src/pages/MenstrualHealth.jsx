@@ -95,7 +95,7 @@ const URGENCY_COLORS = {
 
 
 function HealthAssistant() {
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [messages, setMessages] = useState([
     { role: 'ai', text: t.menstrual?.sakhi_welcome || "Hello! I'm Sakhi, your Women's Health Assistant. I'm here to answer any questions about menstrual health, hygiene, pain, or when to see a doctor. Everything you share is completely private. How can I help you today?" }
@@ -174,27 +174,34 @@ function HealthAssistant() {
   const startVoice = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
-      setMessages(prev => [...prev, { role: 'ai', text: 'Voice input is not supported on this device. Please type your message.', isError: true }]);
+      setMessages(prev => [...prev, { role: 'ai', text: 'Voice input is not supported on this device. Please use Chrome or Edge.', isError: true }]);
       return;
     }
-    const rec = new SR();
-    // Use language context for better rural matching
-    const { lang: currentLang } = useLanguage();
-    const LANG_MAP = { hi: 'hi-IN', en: 'en-IN', ta: 'ta-IN', mr: 'mr-IN', te: 'te-IN', bn: 'bn-IN' };
-    rec.lang = LANG_MAP[currentLang] || 'hi-IN';
-    
-    rec.onstart = () => setIsListening(true);
-    rec.onresult = (e) => { 
-      const text = e.results[0][0].transcript;
-      setInput(text); 
-      setIsListening(false); 
-    };
-    rec.onerror = (e) => {
-      console.error('[Sakhi Voice Error]', e.error);
+
+    try {
+      const rec = new SR();
+      const LANG_MAP = { hi: 'hi-IN', en: 'en-IN', ta: 'ta-IN', mr: 'mr-IN', te: 'te-IN', bn: 'bn-IN' };
+      rec.lang = LANG_MAP[lang] || 'hi-IN';
+      
+      rec.onstart = () => setIsListening(true);
+      rec.onresult = (e) => { 
+        const text = e.results[0][0].transcript;
+        setInput(text); 
+        setIsListening(false); 
+      };
+      rec.onerror = (e) => {
+        console.error('[Sakhi Voice Error]', e.error);
+        setIsListening(false);
+        if (e.error === 'not-allowed') {
+          setMessages(prev => [...prev, { role: 'ai', text: 'Microphone access denied. Please enable microphone permissions in your browser settings.', isError: true }]);
+        }
+      };
+      rec.onend = () => setIsListening(false);
+      rec.start();
+    } catch (err) {
+      console.error('[Sakhi Start Error]', err);
       setIsListening(false);
-    };
-    rec.onend = () => setIsListening(false);
-    rec.start();
+    }
   };
 
   const suggestions = t.menstrual?.sakhi_suggestions || ['How do I manage period pain?', 'What is heavy bleeding?', 'How often should I change pads?', 'My periods are irregular'];
