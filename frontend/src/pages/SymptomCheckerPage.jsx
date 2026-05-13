@@ -314,20 +314,20 @@ export default function SymptomCheckerPage() {
     <div className="min-h-screen bg-[#F7F9FB] font-inter antialiased">
       <Navbar role="villager" />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-20 sm:pt-28 pb-24">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-20 sm:pt-28 pb-32">
 
         {/* HEADER */}
-        <header className="mb-6 sm:mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="flex items-center gap-1.5 mb-2">
+        <header className="mb-4 sm:mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="flex items-center gap-1.5 mb-1 sm:mb-2">
             <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-            <p className={`text-[9px] font-black uppercase tracking-[0.2em] ${isOnline ? 'text-emerald-600' : 'text-amber-600'}`}>
+            <p className={`text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em] ${isOnline ? 'text-emerald-600' : 'text-amber-600'}`}>
               {isOnline ? 'AI Diagnostic Active' : 'Offline Mode'}
             </p>
           </div>
-          <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-4xl font-black text-slate-900 tracking-tight">
             {t.symptom?.title || 'Symptom Checker'}
           </h1>
-          <p className="text-slate-500 font-medium mt-1 sm:mt-3 text-[11px] sm:text-base max-w-xl leading-relaxed">
+          <p className="text-slate-500 font-medium mt-1 sm:mt-3 text-[10px] sm:text-base max-w-xl leading-relaxed">
             {t.symptom?.subtitle || 'Tell us how you feel. We will guide you.'}
           </p>
         </header>

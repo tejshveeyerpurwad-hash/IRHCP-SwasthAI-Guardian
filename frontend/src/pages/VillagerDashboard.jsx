@@ -187,7 +187,7 @@ export default function VillagerDashboard() {
       <div className="flex flex-1 pt-[80px] lg:pt-[90px]">
         <Sidebar role="villager" />
 
-        <main className="flex-1 p-4 sm:p-8 lg:p-12 overflow-y-auto max-w-[1600px] mx-auto w-full">
+        <main className="flex-1 p-3 sm:p-8 lg:p-12 overflow-y-auto max-w-[1600px] mx-auto w-full pb-24 lg:pb-12">
 
           {/* STRATEGIC HEADER */}
           <motion.header
@@ -199,10 +199,10 @@ export default function VillagerDashboard() {
               <div className="flex items-center justify-start gap-2.5 sm:gap-3 text-emerald-600 font-black uppercase tracking-[0.3em] sm:tracking-[0.4em] text-[8px] sm:text-[10px]">
                 <ActivityIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> SwasthAI Guardian
               </div>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-none">
+              <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-none">
                 Namaste, <span className="text-emerald-600 italic">{user?.name || 'Friend'}</span> 🙏
               </h1>
-              <p className="text-slate-400 font-bold text-xs sm:text-sm sm:text-lg">
+              <p className="text-slate-400 font-bold text-[11px] sm:text-lg">
                 {t.dashboardExt?.greeting || 'How are you feeling today?'}
               </p>
             </div>
@@ -235,8 +235,8 @@ export default function VillagerDashboard() {
                       <BrainCircuit className="w-5.5 h-5.5 sm:w-7 sm:h-7" />
                     </div>
                     <div>
-                      <h2 className="text-lg sm:text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none mb-1">Bimari Jaanch / बीमारी जांच</h2>
-                      <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Apne lakshan chunein — Check Your Symptoms</p>
+                      <h2 className="text-base sm:text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none mb-1">Bimari Jaanch / बीमारी जांच</h2>
+                      <p className="text-[7px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Apne lakshan chunein — Check Your Symptoms</p>
                     </div>
                   </div>
                   <div className="hidden sm:flex gap-1.5">
@@ -430,7 +430,7 @@ export default function VillagerDashboard() {
                   <button
                     onClick={requestAmbulance}
                     disabled={ambLoading}
-                    className="w-full h-16 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-100 disabled:text-rose-300 text-white font-black uppercase text-[10px] tracking-[0.4em] rounded-[1.5rem] shadow-xl shadow-rose-600/20 active:scale-95 transition-all flex items-center justify-center gap-4 relative overflow-hidden"
+                    className="w-full h-14 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-100 disabled:text-rose-300 text-white font-black uppercase text-[9px] tracking-[0.3em] rounded-xl shadow-xl shadow-rose-600/20 active:scale-95 transition-all flex items-center justify-center gap-4 relative overflow-hidden"
                   >
                     {ambLoading ? (
                       <><RefreshCw className="w-5 h-5 animate-spin" /> Bhej rahe hain...</>

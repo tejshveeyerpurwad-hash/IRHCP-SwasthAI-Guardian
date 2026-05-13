@@ -114,10 +114,10 @@ export default function Navbar() {
             <HeartPulse className="w-5 h-5 text-white" />
           </div>
           <div className="flex flex-col leading-none">
-            <span className="text-lg font-black text-slate-900 tracking-tighter uppercase group-hover:text-emerald-700 transition-colors">
+            <span className="text-sm sm:text-lg font-black text-slate-900 tracking-tighter uppercase group-hover:text-emerald-700 transition-colors">
               SwasthAI <span className="text-emerald-600 font-medium">Guardian</span>
             </span>
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+            <span className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest">
               Rural Health Network
             </span>
           </div>
@@ -242,9 +242,9 @@ export default function Navbar() {
           {/* Mobile Menu Button */}
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="xl:hidden p-2.5 bg-slate-100 rounded-xl text-slate-900 border border-slate-200"
+            className="xl:hidden p-2 bg-slate-100 rounded-lg text-slate-900 border border-slate-200"
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
         </div>
       </div>
@@ -385,6 +385,40 @@ export default function Navbar() {
             108 — FREE
           </a>
           <p className="text-[8px] font-black text-rose-400 uppercase tracking-widest text-right pr-1">Emergency Ambulance</p>
+        </div>
+      )}
+
+      {/* 📱 Bottom Navigation Bar — Critical for one-handed rural mobile use */}
+      {user && (
+        <div className="xl:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-100 px-2 py-2 pb-safe-area flex items-center justify-around z-[150] shadow-[0_-8px_20px_-10px_rgba(0,0,0,0.1)]">
+          {(user.role === 'villager' ? villagerLinks(t) : ngoLinks(t)).map(link => (
+            <Link
+              key={link.path}
+              to={link.path}
+              className={`flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all ${
+                isActive(link.path) ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <div className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${
+                isActive(link.path) ? 'bg-emerald-50' : 'bg-transparent'
+              }`}>
+                <link.icon className={`w-4.5 h-4.5 ${isActive(link.path) ? 'stroke-[2.5]' : 'stroke-2'}`} />
+              </div>
+              <span className="text-[8px] font-black uppercase tracking-tighter">{link.name}</span>
+            </Link>
+          ))}
+          {/* Mobile Profile Trigger */}
+          <Link
+            to="/profile"
+            className={`flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all ${
+              isActive('/profile') ? 'text-emerald-600' : 'text-slate-400'
+            }`}
+          >
+            <div className={`w-8 h-8 flex items-center justify-center rounded-lg ${isActive('/profile') ? 'bg-emerald-50' : ''}`}>
+              <User className="w-4.5 h-4.5" />
+            </div>
+            <span className="text-[8px] font-black uppercase tracking-tighter">{t.nav?.profile || 'Profile'}</span>
+          </Link>
         </div>
       )}
 
