@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Navbar from '../components/Navbar';
 import SymptomChecker from './SymptomChecker';
-import Ambulance from './Ambulance';
+// Ambulance import removed — always navigate to /ambulance page (GPS-enabled full page)
 import {
   Truck, Mic, PhoneCall, BrainCircuit, Scan,
   User, Droplets, Bell, WifiOff, Zap, PlusCircle,
@@ -140,8 +140,10 @@ export default function VillagerDashboard() {
 
       </main>
 
-      {/* OVERLAY COMMAND INTERFACES */}
-      {showFeature && (
+      {/* OVERLAY COMMAND INTERFACES — Ambulance removed from modal:
+           It had a hardcoded dummy location. All ambulance requests now go
+           through /ambulance page which captures real GPS. */}
+      {showFeature && showFeature !== 'ambulance' && (
         <div className="fixed inset-0 z-[2000] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
           <div className="relative w-full max-w-5xl animate-in zoom-in-95 duration-300">
             <button
@@ -152,8 +154,6 @@ export default function VillagerDashboard() {
             </button>
             <div className="bg-white rounded-[2rem] shadow-2xl overflow-hidden p-6 md:p-12 max-h-[90vh] overflow-y-auto">
               {showFeature === 'symptom' && <SymptomChecker />}
-              {showFeature === 'ambulance' && <Ambulance />}
-              {/* Keep other features here if needed */}
             </div>
           </div>
         </div>

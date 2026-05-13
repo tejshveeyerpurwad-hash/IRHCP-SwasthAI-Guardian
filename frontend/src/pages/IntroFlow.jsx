@@ -113,11 +113,11 @@ export default function IntroFlow() {
 
             <motion.div variants={itemVariants} className="space-y-3">
               <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tighter">
-                {t.intro.welcome_title || 'SwasthAI'}
+                {t.intro?.welcome_title || 'SwasthAI'}
               </h1>
               <div className="flex items-center justify-center gap-2 text-emerald-600 font-bold bg-emerald-50 px-4 py-1.5 rounded-full border border-emerald-100 shadow-sm mx-auto">
                 <Activity className="w-4 h-4 animate-pulse" />
-                <span className="text-[11px] uppercase tracking-widest">{t.intro.welcome_sub || 'Offline AI Healthcare'}</span>
+                <span className="text-[11px] uppercase tracking-widest">{t.intro?.welcome_sub || 'Offline AI Healthcare'}</span>
               </div>
 
               <div className="flex items-center justify-center gap-6 pt-8">
@@ -150,10 +150,10 @@ export default function IntroFlow() {
                 <Globe className="w-8 h-8 sm:w-10 sm:h-10 text-emerald-400 animate-pulse" />
               </motion.div>
               <motion.h2 variants={itemVariants} className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tighter leading-tight">
-                {t.intro.select_title}
+                {t.intro?.select_title || 'Choose Your Language'}
               </motion.h2>
               <motion.p variants={itemVariants} className="text-slate-500 font-bold text-xs sm:text-sm uppercase tracking-widest">
-                {t.intro.select_sub}
+                {t.intro?.select_sub || 'Select the language you prefer.'}
               </motion.p>
             </div>
 
@@ -198,7 +198,7 @@ export default function IntroFlow() {
               onClick={handleNext}
               className="w-full sm:w-auto px-12 py-5 bg-slate-900 hover:bg-emerald-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-2xl mx-4 sm:mx-0"
             >
-              {t.intro.establish_sync || 'Continue'}
+              {t.intro?.establish_sync || 'Continue'}
               <ArrowRight className="w-5 h-5 fill-current text-white" />
             </motion.button>
           </motion.div>
@@ -219,7 +219,7 @@ export default function IntroFlow() {
                 {t.intro?.assets_title || 'Our Key Services'}
               </motion.span>
               <motion.h2 variants={itemVariants} className="text-4xl sm:text-6xl font-black text-slate-900 tracking-tighter max-w-4xl leading-tight">
-                {t.intro.strategic_title}
+                {t.intro?.strategic_title || 'Complete Health Support'}
               </motion.h2>
               <motion.p variants={itemVariants} className="text-slate-500 font-bold text-sm sm:text-base max-w-xl px-4">
                 {t.intro?.strategic_desc || 'Fast doctor advice and emergency help for every village.'}
@@ -303,7 +303,7 @@ export default function IntroFlow() {
               onClick={handleNext}
               className="group w-full sm:w-auto px-12 py-5 bg-slate-900 hover:bg-emerald-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-4 mx-4 sm:mx-0 shadow-xl"
             >
-              {t.intro.protocol_awareness || 'Get Started'}
+              {t.intro?.protocol_awareness || 'Get Started'}
               <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
             </motion.button>
           </motion.div>

@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import sqlite3 from 'sqlite3';
@@ -30,15 +31,23 @@ if (cluster.isPrimary) {
   const PORT = process.env.PORT || 5000;
   const DB_PATH = path.resolve('swasth_guardian.sqlite');
 
-  // CORS — whitelisted origins only (set ALLOWED_ORIGINS in .env for production)
+  // Security headers — Helmet.js (OWASP Top 10 compliant)
+  // CSP disabled: Vite inline scripts; COEP disabled: cross-origin AI service calls
+  app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  }));
+
+  // CORS — Allow all in development for easy mobile testing, or whitelisted in production
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
     : ['http://localhost:5173', 'http://localhost:3000'];
 
   app.use(cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, Postman, curl)
-      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      // Allow all origins in development or if explicitly whitelisted
+      const isDev = process.env.NODE_ENV !== 'production';
+      if (!origin || isDev || allowedOrigins.includes(origin)) return callback(null, true);
       callback(new Error(`CORS: Origin ${origin} not allowed.`));
     },
     credentials: true,
@@ -62,6 +71,9 @@ if (cluster.isPrimary) {
       driver: sqlite3.Database
     });
 
+    // --- DATABASE INITIALIZATION ---
+    await db.exec('PRAGMA journal_mode=WAL');
+    
     // Table Creation
     await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
@@ -146,23 +158,51 @@ if (cluster.isPrimary) {
       villageId TEXT,
       date TEXT
     );
-    CREATE TABLE IF NOT EXISTS requests (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER,
-      type TEXT,
-      status TEXT DEFAULT 'pending',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
   `);
-    console.log('--- SwasthAI Guardian Core: SQLite Database Initialized ---');
-  })();
+
+    // --- AUTO-MIGRATION HELPER ---
+    // Hardens the database against schema changes by automatically adding missing columns
+    const migrateSchema = async () => {
+      const migrations = {
+        ambulance_requests: [
+          { name: 'user_id', type: 'INTEGER' },
+          { name: 'type', type: "TEXT DEFAULT 'emergency'" },
+          { name: 'created_at', type: 'DATETIME DEFAULT CURRENT_TIMESTAMP', legacy: 'createdAt' }
+        ],
+        village_health: [
+          { name: 'outbreakAlert', type: 'TEXT DEFAULT NULL' },
+          { name: 'lastUpdated', type: 'DATETIME DEFAULT NULL' }
+        ]
+      };
+
+      for (const [table, columns] of Object.entries(migrations)) {
+        try {
+          const tableInfo = await db.all(`PRAGMA table_info(${table})`);
+          const existing = tableInfo.map(c => c.name);
+          for (const col of columns) {
+            if (!existing.includes(col.name)) {
+              if (col.legacy && existing.includes(col.legacy)) {
+                await db.exec(`ALTER TABLE ${table} RENAME COLUMN ${col.legacy} TO ${col.name}`);
+                console.log(`[MIGRATION] Renamed ${table}.${col.legacy} to ${col.name}`);
+              } else {
+                await db.exec(`ALTER TABLE ${table} ADD COLUMN ${col.name} ${col.type}`);
+                console.log(`[MIGRATION] Added column ${col.name} to ${table}`);
+              }
+            }
+          }
+        } catch (err) { console.error(`Migration error on ${table}:`, err.message); }
+      }
+    };
+    await migrateSchema();
+
+    console.log('--- SwasthAI Guardian Core: SQLite Database Initialized & Migrated ---');
 
   // --- AUTH MIDDLEWARE ---
   const auth = (req, res, next) => {
+    if (!db) return res.status(503).send({ error: 'Database initializing. Please try again in a few seconds.' });
     try {
       const token = req.header('Authorization')?.replace('Bearer ', '');
       if (!token) return res.status(401).send({ error: 'Auth Required' });
-      // Use the SAME secret as login-password — must match or all tokens are invalid
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'swasthai_secret_2026');
       req.user = decoded;
       next();
@@ -241,14 +281,59 @@ if (cluster.isPrimary) {
   });
 
   app.put('/api/auth/profile', auth, async (req, res) => {
-    const { username } = req.body;
-    if (!username) return res.status(400).send({ error: 'Username is required.' });
+    // FIX: Accept both 'name' (display name) and 'username' — frontend sends 'name'
+    const { name, username } = req.body;
+    if (!name && !username) return res.status(400).send({ error: 'Name or username is required.' });
     try {
-      await db.run('UPDATE users SET username = ? WHERE id = ?', [username, req.user.id]);
+      // Build update dynamically — update whichever fields were sent
+      const updates = [];
+      const values = [];
+      if (name)     { updates.push('name = ?');     values.push(name.trim()); }
+      if (username) { updates.push('username = ?'); values.push(username.trim()); }
+      values.push(req.user.id);
+      await db.run(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, values);
       const updatedUser = await db.get('SELECT * FROM users WHERE id = ?', [req.user.id]);
       res.send({ user: { id: updatedUser.id, name: updatedUser.name, username: updatedUser.username, role: updatedUser.role, villageId: updatedUser.villageId } });
     } catch (err) {
+      console.error('Profile update error:', err);
       res.status(500).send({ error: 'Failed to update profile.' });
+    }
+  });
+
+  // ── VILLAGER: Emergency ASHA Alert ───────────────────────────────────────
+  // Fix: replaces the fake window.alert() in MenstrualHealth.jsx with a real
+  // backend record that shows up on the NGO dashboard as a priority pad/ambulance request.
+  app.post('/api/villager/emergency-alert', auth, async (req, res) => {
+    const { alertType = 'menstrual_emergency', message = 'Emergency help needed' } = req.body;
+    try {
+      // Fetch user details — name and villageId
+      const userRecord = await db.get('SELECT name, villageId FROM users WHERE id = ?', [req.user.id]);
+      const userName  = userRecord?.name     || `User-${req.user.id}`;
+      const villageId = userRecord?.villageId || req.user.villageId || 'Unknown Village';
+
+      // Store as a high-priority ambulance request so NGO sees it in their dashboard
+      await db.run(
+        'INSERT INTO ambulance_requests (user_id, name, location, priority, type, symptoms, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [
+          req.user.id,
+          userName,
+          villageId,
+          'Critical',
+          'asha_emergency',
+          `🚨 ASHA EMERGENCY ALERT — ${alertType}: ${message}`,
+          'pending'
+        ]
+      );
+
+      console.log(`[ASHA EMERGENCY] User: ${userName} (${villageId}) — ${alertType}`);
+      res.status(201).send({
+        success: true,
+        message: 'Your ASHA worker has been alerted. She will contact you shortly.',
+        alertId: `ALERT-${Date.now()}`
+      });
+    } catch (err) {
+      console.error('Emergency alert error:', err);
+      res.status(500).send({ error: 'Failed to send alert. Please call 108 directly.' });
     }
   });
 
@@ -296,8 +381,65 @@ if (cluster.isPrimary) {
 
   app.post('/api/villager/ambulance', auth, async (req, res) => {
     const { name, location, priority, symptoms: sxy } = req.body;
-    await db.run('INSERT INTO ambulance_requests (name, location, priority, symptoms) VALUES (?, ?, ?, ?)', [name, location, priority, sxy]);
-    res.status(201).send({ status: 'dispatched', eta: '14 mins' });
+    const userId = req.user.id;
+    try {
+      // ── Deduplication: reject if same user submitted within last 60 seconds ──
+      const recent = await db.get(
+        "SELECT id FROM ambulance_requests WHERE user_id = ? AND created_at > datetime('now', '-60 seconds')",
+        [userId]
+      );
+      if (recent) {
+        return res.status(429).json({
+          error: 'Request already sent. Please wait 60 seconds before sending another.',
+          retryAfter: 60
+        });
+      }
+
+      const result = await db.run(
+        'INSERT INTO ambulance_requests (user_id, name, location, priority, symptoms, status) VALUES (?, ?, ?, ?, ?, ?)',
+        [userId, name, location, priority, sxy, 'pending']
+      );
+      console.log(`[AMBULANCE] Request #${result.lastID} from user ${userId} — ${priority} at ${location}`);
+      res.status(201).send({ status: 'dispatched', eta: '14 mins', requestId: result.lastID });
+    } catch (err) {
+      console.error('[AMBULANCE ERROR]', err);
+      res.status(500).json({ 
+        error: 'Server error saving ambulance request.',
+        details: err.message,
+        hint: 'Please call 108 directly.' 
+      });
+    }
+  });
+
+  // Ambulance status polling — villager polls this after dispatch to get live status
+  app.get('/api/villager/ambulance-status', auth, async (req, res) => {
+    try {
+      const latest = await db.get(
+        'SELECT id, status, location, priority, created_at FROM ambulance_requests WHERE user_id = ? ORDER BY id DESC LIMIT 1',
+        [req.user.id]
+      );
+      if (!latest) return res.status(404).json({ error: 'No requests found.' });
+      res.json(latest);
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to fetch status.' });
+    }
+  });
+
+  // My History — used by Profile page to show last 5 symptom checks + ambulance requests
+  app.get('/api/villager/my-history', auth, async (req, res) => {
+    try {
+      const symptoms = await db.all(
+        'SELECT id, symptoms, prediction, createdAt FROM symptoms WHERE userId = ? ORDER BY id DESC LIMIT 5',
+        [req.user.id]
+      );
+      const ambulances = await db.all(
+        'SELECT id, location, priority, status, created_at FROM ambulance_requests WHERE user_id = ? ORDER BY id DESC LIMIT 5',
+        [req.user.id]
+      );
+      res.json({ symptoms, ambulances });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to fetch history.' });
+    }
   });
 
   // 3. NGO / ASHA SERVICES
@@ -507,30 +649,20 @@ Rules: respond in user's language; never diagnose; be warm and concise (3-5 sent
 
   // NOTE: Duplicate /api/villager/pad-request removed — first definition (line ~429) is the canonical one.
 
-  // 4. REQUEST WORKFLOW
-  app.post('/api/requests', auth, async (req, res) => {
-    const { type } = req.body;
-    const user_id = req.user.id;
-    const result = await db.run('INSERT INTO requests (user_id, type, status) VALUES (?, ?, ?)', [user_id, type, 'pending']);
-    res.status(201).send({ id: result.lastID, status: 'pending' });
+  // 4. REQUEST WORKFLOW — DEPRECATED ROUTES
+  // The 'requests' table was dropped (see schema comment line ~157).
+  // These routes now return 410 Gone instead of crashing with SQLite 'no such table' errors.
+  // All request workflows have been migrated to:
+  //   Ambulance → /api/villager/ambulance → ambulance_requests table
+  //   Pad Requests → /api/villager/pad-request → ambulance_requests table (priority='Pad Request')
+  //   ASHA Alerts → /api/villager/emergency-alert → ambulance_requests table (type='asha_emergency')
+  const _removedTableHandler = (req, res) => res.status(410).json({
+    error: 'This endpoint has been retired. Use /api/villager/ambulance or /api/villager/pad-request instead.',
+    migration: 'See /api/health for current active endpoints.'
   });
-
-  app.get('/api/requests', auth, async (req, res) => {
-    const { type, status } = req.query;
-    let query = 'SELECT * FROM requests WHERE 1=1';
-    let params = [];
-    if (type) { query += ' AND type = ?'; params.push(type); }
-    if (status) { query += ' AND status = ?'; params.push(status); }
-    query += ' ORDER BY created_at DESC';
-    const requests = await db.all(query, params);
-    res.send(requests);
-  });
-
-  app.put('/api/requests/:id/status', auth, checkRole(['ngo', 'admin']), async (req, res) => {
-    const { status } = req.body;
-    await db.run('UPDATE requests SET status = ? WHERE id = ?', [status, req.params.id]);
-    res.send({ success: true, status });
-  });
+  app.post('/api/requests',          auth, _removedTableHandler);
+  app.get('/api/requests',           auth, _removedTableHandler);
+  app.put('/api/requests/:id/status', auth, _removedTableHandler);
 
   // 5. ADMIN ANALYTICS
   app.get('/api/admin/analytics', auth, checkRole(['admin']), async (req, res) => {
@@ -567,41 +699,57 @@ Rules: respond in user's language; never diagnose; be warm and concise (3-5 sent
   });
 
   app.get('/api/admin/summary', auth, checkRole(['admin']), async (req, res) => {
-    const totalUsers = await db.get('SELECT COUNT(*) as c FROM users WHERE role = "villager"');
-    const totalNgos = await db.get('SELECT COUNT(*) as c FROM users WHERE role = "ngo"');
-    const totalReqs = await db.get('SELECT COUNT(*) as c FROM requests');
-    const emergencyReqs = await db.get('SELECT COUNT(*) as c FROM ambulance_requests');
-    const sanitaryReqs = await db.get('SELECT COUNT(*) as c FROM requests WHERE type = "sanitary_pad"');
+    try {
+      const totalUsers = await db.get('SELECT COUNT(*) as c FROM users WHERE role = "villager"');
+      const totalNgos = await db.get('SELECT COUNT(*) as c FROM users WHERE role = "ngo"');
+      
+      // Fallback for deprecated 'requests' table
+      let totalReqs = { c: 0 };
+      let sanitaryReqs = { c: 0 };
+      try {
+        totalReqs = await db.get('SELECT COUNT(*) as c FROM requests');
+        sanitaryReqs = await db.get('SELECT COUNT(*) as c FROM requests WHERE type = "sanitary_pad"');
+      } catch (e) { /* ignore if table missing */ }
 
-    res.send({
-      totalUsers: totalUsers.c,
-      totalNgos: totalNgos.c,
-      totalRequests: totalReqs.c + emergencyReqs.c,
-      emergencyCount: emergencyReqs.c,
-      sanitaryCount: sanitaryReqs.c
-    });
+      const emergencyReqs = await db.get('SELECT COUNT(*) as c FROM ambulance_requests');
+      const padReqs = await db.get('SELECT COUNT(*) as c FROM ambulance_requests WHERE priority = "Pad Request"');
+
+      res.send({
+        totalUsers: totalUsers?.c || 0,
+        totalNgos: totalNgos?.c || 0,
+        totalRequests: (totalReqs?.c || 0) + (emergencyReqs?.c || 0),
+        emergencyCount: emergencyReqs?.c || 0,
+        sanitaryCount: (sanitaryReqs?.c || 0) + (padReqs?.c || 0)
+      });
+    } catch (err) {
+      console.error('Summary fetch error:', err);
+      res.status(500).send({ error: 'Failed to fetch admin summary' });
+    }
   });
 
   app.get('/api/admin/report', auth, checkRole(['admin']), async (req, res) => {
     try {
       const ambulances = await db.all('SELECT * FROM ambulance_requests ORDER BY id DESC');
-      const padReqs = await db.all('SELECT * FROM requests ORDER BY id DESC');
-
+      
       let csv = 'Record ID,Type,Patient Name/ID,Location/Priority,Status,Date\n';
 
       ambulances.forEach(a => {
         csv += `AMB-${a.id},${a.type || 'ambulance'},"${a.name || 'User ' + a.user_id}","${a.location || ''} (${a.priority || ''})",${a.status},${a.created_at}\n`;
       });
 
-      padReqs.forEach(r => {
-        csv += `REQ-${r.id},${r.type},User ${r.user_id},N/A,${r.status},${r.created_at}\n`;
-      });
+      // Optionally include legacy requests if the table exists
+      try {
+        const padReqs = await db.all('SELECT * FROM requests ORDER BY id DESC');
+        padReqs.forEach(r => {
+          csv += `REQ-${r.id},${r.type},User ${r.user_id},N/A,${r.status},${r.created_at}\n`;
+        });
+      } catch (e) { /* ignore if table missing */ }
 
       res.header('Content-Type', 'text/csv');
       res.attachment('swasthai_admin_report.csv');
       return res.send(csv);
     } catch (err) {
-      console.error(err);
+      console.error('Report generation error:', err);
       res.status(500).send({ error: 'Failed to generate report' });
     }
   });
@@ -663,5 +811,17 @@ Rules: respond in user's language; never diagnose; be warm and concise (3-5 sent
     }
   });
 
-  app.listen(PORT, () => console.log(`Security Engine running on node ${PORT} (Worker ${process.pid})`));
+  // Health check — used by docker-compose, load balancers, and monitoring
+  app.get('/api/health', (req, res) => {
+    res.json({
+      status: 'ok',
+      service: 'SwasthAI Guardian Backend',
+      uptime: Math.floor(process.uptime()),
+      timestamp: new Date().toISOString(),
+      worker: process.pid,
+    });
+  });
+
+    app.listen(PORT, () => console.log(`Security Engine running on node ${PORT} (Worker ${process.pid})`));
+  })();
 }

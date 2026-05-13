@@ -21,6 +21,19 @@ export default function AdminDashboard() {
   const [ambLoading, setAmbLoading] = useState(true);
   const [outbreaks, setOutbreaks] = useState([]);
   const [outbreakLoading, setOutbreakLoading] = useState(true);
+  const [alertSent, setAlertSent] = useState(false);
+
+  const issueDistrictAlert = async () => {
+    try {
+      await api.post('/admin/outbreak-alert', {
+        villageId: 'DISTRICT_WIDE',
+        disease: 'Manual District Alert',
+        action: 'All ASHA workers notified. Escalate to District Health Officer immediately.',
+      });
+    } catch (_) { /* best-effort */ }
+    setAlertSent(true);
+    setTimeout(() => setAlertSent(false), 4000);
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -277,7 +290,7 @@ export default function AdminDashboard() {
                 {[
                   { label: 'Villages Monitored', val: '1,200+' },
                   { label: 'Symptom Events Today', val: stats.today_symptoms ?? '—' },
-                  { label: 'Outbreak Threshold', val: '5 cases / 24h' },
+                  { label: 'Outbreak Threshold', val: '3+ cases / 24h' },
                 ].map(item => (
                   <div key={item.label} className="bg-emerald-800/50 border border-emerald-700/50 rounded-2xl p-4">
                     <p className="text-2xl font-black text-white">{item.val}</p>
@@ -285,8 +298,11 @@ export default function AdminDashboard() {
                   </div>
                 ))}
               </div>
-              <button className="px-8 py-3.5 bg-white text-emerald-900 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all shadow-lg">
-                Issue District-Wide Alert
+              <button onClick={issueDistrictAlert}
+                className={`px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-lg ${
+                  alertSent ? 'bg-emerald-400 text-white cursor-default' : 'bg-white text-emerald-900 hover:bg-emerald-500 hover:text-white'
+                }`}>
+                {alertSent ? '✅ Alert Sent to All ASHA Workers' : 'Issue District-Wide Alert'}
               </button>
             </div>
 

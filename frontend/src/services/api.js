@@ -5,9 +5,9 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: BASE_URL,
-  // 🌐 Rural India 2G optimization: 8s timeout prevents infinite loading on slow networks.
+  // 🌐 Rural India 2G optimization: 15s timeout allows for slow satellite/cell handovers.
   // All components have offline fallbacks that trigger on network errors.
-  timeout: 8000,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },

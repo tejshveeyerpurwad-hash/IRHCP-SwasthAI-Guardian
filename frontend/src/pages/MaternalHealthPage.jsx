@@ -66,6 +66,12 @@ function MaternalForm({ onSave, onClose }) {
       const res = await api.post('/ngo/maternal', payload);
       onSave({ ...form, riskLevel: res.data.riskLevel, vitals });
     } catch (err) {
+      if (err.response?.status === 401) {
+        alert('Your session has expired. Please log in again.');
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        return;
+      }
       setError(err.response?.data?.error || 'Maternal Risk AI is currently unavailable. Please consult a doctor immediately.');
     } finally { setLoading(false); }
   };
@@ -189,9 +195,19 @@ export default function MaternalHealthPage() {
   const [filter, setFilter] = useState('All');
 
   const fetchRecords = async () => {
-    try { setError(''); const res = await api.get('/ngo/maternal'); setRecords(res.data); }
-    catch (err) { setError(err.response?.data?.error || 'Failed to load records.'); }
-    finally { setLoading(false); }
+    try { 
+      setError(''); 
+      const res = await api.get('/ngo/maternal'); 
+      setRecords(res.data); 
+    } catch (err) { 
+      if (err.response?.status === 401) {
+        alert('Your session has expired. Please log in again.');
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        return;
+      }
+      setError(err.response?.data?.error || 'Failed to load records.'); 
+    } finally { setLoading(false); }
   };
   useEffect(() => { fetchRecords(); }, []);
 

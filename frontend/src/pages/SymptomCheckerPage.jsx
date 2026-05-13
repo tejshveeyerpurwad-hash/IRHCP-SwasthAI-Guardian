@@ -38,17 +38,17 @@ export default function SymptomCheckerPage() {
   const dc = t.diseaseChecker || {};
 
   const symptomList = [
-    { id: 'fever',       label: 'Fever',          hindi: 'बुखार',                  severe: false, icon: Thermometer },
-    { id: 'cough',       label: 'Cough',           hindi: 'खाँसी',                  severe: false, icon: Wind },
-    { id: 'chest_pain',  label: 'Chest Pain',      hindi: 'सीने में दर्द',           severe: true,  icon: Activity },
-    { id: 'breathing',   label: 'Breathing Issue', hindi: 'सांस की तकलीफ',          severe: true,  icon: Wind },
-    { id: 'bleeding',    label: 'Bleeding',        hindi: 'खून आना',                severe: true,  icon: Droplets },
-    { id: 'headache',    label: 'Headache',        hindi: 'सिर दर्द',               severe: false, icon: Info },
-    { id: 'vomiting',    label: 'Vomiting',        hindi: 'उल्टी',                  severe: false, icon: BriefcaseMedical },
-    { id: 'weakness',    label: 'Weakness',        hindi: 'कमज़ोरी',                 severe: false, icon: HeartPulse },
-    { id: 'dizziness',   label: 'Dizziness',       hindi: 'चक्कर आना',              severe: false, icon: Info },
-    { id: 'vision_loss', label: 'Vision Loss',     hindi: 'आंख के आगे अंधेरा',     severe: true,  icon: Scan },
-    { id: 'paralysis',   label: 'Limb Weakness',   hindi: 'एक तरफ़ कमज़ोरी',        severe: true,  icon: ShieldCheck },
+    { id: 'fever', label: 'Fever', hindi: 'बुखार', severe: false, icon: Thermometer },
+    { id: 'cough', label: 'Cough', hindi: 'खाँसी', severe: false, icon: Wind },
+    { id: 'chest_pain', label: 'Chest Pain', hindi: 'सीने में दर्द', severe: true, icon: Activity },
+    { id: 'breathing', label: 'Breathing Issue', hindi: 'सांस की तकलीफ', severe: true, icon: Wind },
+    { id: 'bleeding', label: 'Bleeding', hindi: 'खून आना', severe: true, icon: Droplets },
+    { id: 'headache', label: 'Headache', hindi: 'सिर दर्द', severe: false, icon: Info },
+    { id: 'vomiting', label: 'Vomiting', hindi: 'उल्टी', severe: false, icon: BriefcaseMedical },
+    { id: 'weakness', label: 'Weakness', hindi: 'कमज़ोरी', severe: false, icon: HeartPulse },
+    { id: 'dizziness', label: 'Dizziness', hindi: 'चक्कर आना', severe: false, icon: Info },
+    { id: 'vision_loss', label: 'Vision Loss', hindi: 'आंख के आगे अंधेरा', severe: true, icon: Scan },
+    { id: 'paralysis', label: 'Limb Weakness', hindi: 'एक तरफ़ कमज़ोरी', severe: true, icon: ShieldCheck },
   ];
 
   const handleSymptomChange = (id) => {
@@ -149,17 +149,17 @@ export default function SymptomCheckerPage() {
 
     // Map checkbox IDs → human-readable symptom phrases the model understands
     const symptomIdToText = {
-      fever:       'fever',
-      cough:       'cough',
-      chest_pain:  'chest pain',
-      breathing:   'breathing difficulty',
-      bleeding:    'bleeding',
-      headache:    'headache',
-      vomiting:    'vomiting',
-      weakness:    'weakness',
-      dizziness:   'dizziness',
+      fever: 'fever',
+      cough: 'cough',
+      chest_pain: 'chest pain',
+      breathing: 'breathing difficulty',
+      bleeding: 'bleeding',
+      headache: 'headache',
+      vomiting: 'vomiting',
+      weakness: 'weakness',
+      dizziness: 'dizziness',
       vision_loss: 'vision loss',
-      paralysis:   'limb weakness paralysis',
+      paralysis: 'limb weakness paralysis',
     };
     const selectedText = selectedSymptoms
       .map(id => symptomIdToText[id] || id)
@@ -185,25 +185,37 @@ export default function SymptomCheckerPage() {
       setResult({ ...tier, aiResult: aiPrediction });
       if (alert) setOutbreakAlert(alert);
     } catch (err) {
-      const tier = getSeverityTier(selectedSymptoms, '', otherSymptom);
-      setResult({ ...tier, offline: true });
+      console.error('Symptom analysis failed:', err);
+      if (err.response?.status === 401) {
+        alert('Your session has expired. Please log in again.');
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      } else {
+        const tier = getSeverityTier(selectedSymptoms, '', otherSymptom);
+        setResult({ ...tier, offline: true, error: true });
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // BCP-47 lang codes — ordered fallback chain
+  // BCP-47 lang codes — expanded for 6-language production support
   const LANG_CHAIN = {
-    hi: ['hi-IN', 'en-IN', 'ta-IN'],
-    ta: ['ta-IN', 'en-IN', 'hi-IN'],
-    en: ['en-IN', 'hi-IN', 'ta-IN'],
-    bn: ['bn-IN', 'en-IN', 'hi-IN'],
-    te: ['te-IN', 'en-IN', 'hi-IN'],
+    hi: ['hi-IN', 'en-IN', 'ta-IN', 'mr-IN', 'te-IN', 'bn-IN'],
+    ta: ['ta-IN', 'en-IN', 'hi-IN', 'te-IN'],
+    en: ['en-IN', 'hi-IN', 'ta-IN', 'mr-IN', 'te-IN', 'bn-IN'],
+    bn: ['bn-IN', 'hi-IN', 'en-IN'],
+    te: ['te-IN', 'hi-IN', 'en-IN', 'ta-IN'],
+    mr: ['mr-IN', 'hi-IN', 'en-IN'],
   };
 
   const LANG_LABELS = {
-    'hi-IN': 'हिंदी', 'ta-IN': 'தமிழ்', 'en-IN': 'English',
-    'bn-IN': 'বাংলা', 'te-IN': 'తెలుగు',
+    'hi-IN': 'हिंदी',
+    'ta-IN': 'தமிழ்',
+    'en-IN': 'English',
+    'bn-IN': 'বাংলা',
+    'te-IN': 'తెలుగు',
+    'mr-IN': 'मराठी',
   };
 
   // Filler words across all three languages
@@ -224,7 +236,7 @@ export default function SymptomCheckerPage() {
   const startVoiceAttempt = useCallback((langChain, attemptIdx = 0) => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert('Voice input is not supported in this browser. Please type your symptoms.');
+      alert('Voice input is not supported in this browser. Please use Chrome or Edge.');
       return;
     }
     if (attemptIdx >= langChain.length) {
@@ -237,61 +249,45 @@ export default function SymptomCheckerPage() {
     const currentLang = langChain[attemptIdx];
     const recognition = new SpeechRecognition();
     recognition.lang = currentLang;
-    // ── Rural-safe settings ────────────────────────────────────────────────────
-    // continuous: FALSE — single utterance only (saves data on 2G/3G)
-    // interimResults: TRUE — still shows live text but only for current sentence
     recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 2;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
     recognitionRef.current = recognition;
     setIsVoiceActive(true);
     setVoiceLang(currentLang);
     setInterimText('');
 
-    let finalTranscript = '';
-
     recognition.onresult = (e) => {
-      let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const text = e.results[i][0].transcript;
-        const confidence = e.results[i][0].confidence;
-        if (e.results[i].isFinal) {
-          // Low confidence → try next language
-          if (confidence !== undefined && confidence < 0.4 && attemptIdx + 1 < langChain.length) {
-            recognition.stop();
-            setInterimText('');
-            setTimeout(() => startVoiceAttempt(langChain, attemptIdx + 1), 300);
-            return;
-          }
-          finalTranscript += ' ' + cleanText(text);
-          setInterimText('');
-        } else {
-          interim += text;
-        }
+      const text = e.results[0][0].transcript;
+      const cleaned = cleanText(text);
+      if (cleaned) {
+        setOtherSymptom(prev => {
+          const base = prev.trim();
+          return base ? base + ' ' + cleaned : cleaned;
+        });
       }
-      if (interim) setInterimText(interim);
+      setIsVoiceActive(false);
+      setVoiceLang('');
+      recognitionRef.current = null;
     };
 
     recognition.onend = () => {
-      const cleaned = cleanText(finalTranscript);
-      if (cleaned) {
-        setOtherSymptom(prev => prev ? prev.trim() + ' ' + cleaned : cleaned);
-      }
       setIsVoiceActive(false);
-      setInterimText('');
       setVoiceLang('');
       recognitionRef.current = null;
     };
 
     recognition.onerror = (e) => {
-      if ((e.error === 'no-speech' || e.error === 'language-not-supported') && attemptIdx + 1 < langChain.length) {
+      console.error('Voice Recognition Error:', e.error);
+      if ((e.error === 'no-speech' || e.error === 'language-not-supported' || e.error === 'network') && attemptIdx + 1 < langChain.length) {
         setInterimText('');
         setTimeout(() => startVoiceAttempt(langChain, attemptIdx + 1), 200);
       } else {
         setIsVoiceActive(false);
         setInterimText('');
         setVoiceLang('');
+        if (e.error === 'not-allowed') alert('Microphone access denied. Please check your browser settings.');
       }
       recognitionRef.current = null;
     };
@@ -304,20 +300,14 @@ export default function SymptomCheckerPage() {
       stopVoice();
       return;
     }
-    // — Offline guard: Web Speech API needs Google's servers —
-    if (!navigator.onLine) {
-      setInterimText('⚠️ No internet. Please type your symptoms instead.');
-      setIsVoiceActive(false);
-      return;
-    }
     const chain = LANG_CHAIN[lang] || ['hi-IN', 'en-IN', 'ta-IN'];
     startVoiceAttempt(chain, 0);
   }, [isVoiceActive, lang, startVoiceAttempt, stopVoice]);
 
   const severityConfig = {
-    severe:   { bg: 'bg-rose-600',    badge: 'bg-rose-100 text-rose-700',    icon: AlertCircle  },
-    moderate: { bg: 'bg-amber-500',   badge: 'bg-amber-100 text-amber-700',   icon: AlertCircle  },
-    mild:     { bg: 'bg-emerald-600', badge: 'bg-emerald-100 text-emerald-700', icon: ShieldCheck },
+    severe: { bg: 'bg-rose-600', badge: 'bg-rose-100 text-rose-700', icon: AlertCircle },
+    moderate: { bg: 'bg-amber-500', badge: 'bg-amber-100 text-amber-700', icon: AlertCircle },
+    mild: { bg: 'bg-emerald-600', badge: 'bg-emerald-100 text-emerald-700', icon: ShieldCheck },
   };
 
   return (
@@ -431,20 +421,18 @@ export default function SymptomCheckerPage() {
                       key={item.id}
                       whileTap={{ scale: 0.97 }}
                       onClick={() => handleSymptomChange(item.id)}
-                      className={`p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden group ${
-                        isSelected
+                      className={`p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden group ${isSelected
                           ? 'bg-emerald-50 border-emerald-500 shadow-sm shadow-emerald-100'
                           : 'bg-slate-50 border-slate-100 hover:border-emerald-200'
-                      }`}
+                        }`}
                     >
                       {item.severe && (
                         <span className="absolute top-2 right-2 text-[8px] font-black text-rose-500 uppercase tracking-wider bg-rose-50 px-1.5 py-0.5 rounded-full border border-rose-100">
                           Severe
                         </span>
                       )}
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-3 transition-all ${
-                        isSelected ? 'bg-emerald-600 text-white' : 'bg-white text-slate-300'
-                      }`}>
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-3 transition-all ${isSelected ? 'bg-emerald-600 text-white' : 'bg-white text-slate-300'
+                        }`}>
                         <item.icon className="w-4 h-4" />
                       </div>
                       <p className={`font-black text-sm leading-tight ${isSelected ? 'text-emerald-900' : 'text-slate-700'}`}>
@@ -500,7 +488,7 @@ export default function SymptomCheckerPage() {
                     {/* Animated waveform bars */}
                     <div className="flex items-center gap-2 mb-2">
                       <div className="flex items-end gap-[3px] h-5">
-                        {[1,2,3,4,5].map(i => (
+                        {[1, 2, 3, 4, 5].map(i => (
                           <motion.div
                             key={i}
                             className="w-[3px] bg-rose-500 rounded-full"
@@ -537,13 +525,12 @@ export default function SymptomCheckerPage() {
                 <button
                   onClick={startVoice}
                   title={isVoiceActive ? 'Tap to stop' : navigator.onLine ? 'Tap to speak' : 'No internet — voice unavailable'}
-                  className={`absolute bottom-4 right-4 p-3 rounded-xl transition-all ${
-                    isVoiceActive
+                  className={`absolute bottom-4 right-4 p-3 rounded-xl transition-all ${isVoiceActive
                       ? 'bg-rose-600 text-white shadow-lg shadow-rose-200'
                       : !navigator.onLine
                         ? 'bg-slate-300 text-white cursor-not-allowed'
                         : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-200'
-                  }`}
+                    }`}
                 >
                   {isVoiceActive
                     ? <Volume2 className="w-4 h-4" />
@@ -558,11 +545,10 @@ export default function SymptomCheckerPage() {
                 {['hi-IN', 'en-IN', 'ta-IN'].map(l => (
                   <span
                     key={l}
-                    className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full border transition-all ${
-                      voiceLang === l
+                    className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full border transition-all ${voiceLang === l
                         ? 'bg-rose-100 border-rose-300 text-rose-600'
                         : 'bg-slate-50 border-slate-100 text-slate-300'
-                    }`}
+                      }`}
                   >
                     {LANG_LABELS[l]}
                   </span>
@@ -697,18 +683,28 @@ export default function SymptomCheckerPage() {
                         <p className="text-xs font-bold leading-relaxed">{result.advice}</p>
                       </div>
 
-                      {/* Offline badge — simple words, Hindi included */}
+                      {/* Offline/Error badge */}
                       {result.offline && (
                         <div className="p-3 bg-black/15 rounded-xl border border-white/10">
                           <div className="flex items-center gap-1.5 mb-1">
-                            <WifiOff className="w-3 h-3 text-white/60" />
-                            <p className="text-[9px] font-black text-white/60 uppercase tracking-widest">No Internet Used</p>
+                            {result.error ? (
+                              <AlertCircle className="w-3 h-3 text-white/90" />
+                            ) : (
+                              <WifiOff className="w-3 h-3 text-white/60" />
+                            )}
+                            <p className="text-[9px] font-black text-white/90 uppercase tracking-widest">
+                              {result.error ? 'Connection Problem' : 'Offline Analysis'}
+                            </p>
                           </div>
                           <p className="text-xs font-bold text-white/80">
-                            This result used only your phone. No server needed. ✔️
+                            {result.error 
+                              ? 'Could not reach AI server. Using local logic fallback.' 
+                              : 'This result used only your phone. No server needed. ✔️'}
                           </p>
                           <p className="text-[10px] text-white/50 font-medium mt-0.5">
-                            फ़ोन से ही जांच हुई — इंटरनेट नहीं चाहिए था ✔️
+                            {result.error 
+                              ? 'सर्वर से संपर्क नहीं हो सका — बेसिक जांच की गई है' 
+                              : 'फ़ोन से ही जांच हुई — इंटरनेट नहीं चाहिए था ✔️'}
                           </p>
                         </div>
                       )}

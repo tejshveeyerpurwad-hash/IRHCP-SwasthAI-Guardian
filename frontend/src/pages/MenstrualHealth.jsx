@@ -5,7 +5,7 @@ import {
   Package, MessageCircle, HeartPulse, BookOpen,
   Mic, AlertTriangle, CheckCircle, Send, X,
   Droplets, Zap, PhoneCall, MapPin, ShieldCheck,
-  Bot, User, Loader, WifiOff, BookMarked, CheckCircle2
+  Bot, User, Loader, WifiOff, BookMarked, CheckCircle2, Calendar
 } from 'lucide-react';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
@@ -96,7 +96,7 @@ const URGENCY_COLORS = {
 
 function HealthAssistant() {
   const { t } = useLanguage();
-  const [isOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [messages, setMessages] = useState([
     { role: 'ai', text: t.menstrual?.sakhi_welcome || "Hello! I'm Sakhi, your Women's Health Assistant. I'm here to answer any questions about menstrual health, hygiene, pain, or when to see a doctor. Everything you share is completely private. How can I help you today?" }
   ]);
@@ -121,6 +121,17 @@ function HealthAssistant() {
   };
 
   useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
@@ -132,7 +143,7 @@ function HealthAssistant() {
     setLoading(true);
     try {
       // ── Call the grounded RAG endpoint ──────────────────────────────────
-      const res = await api.post('/ai/rag-chat', { message: userMsg });
+      const res = await api.post('/health-assistant', { message: userMsg });
       setMessages(prev => [...prev, {
         role:    'ai',
         text:    res.data.reply,
@@ -144,6 +155,12 @@ function HealthAssistant() {
         speakResponse(res.data.reply);
       }
     } catch (err) {
+      if (err.response?.status === 401) {
+        alert('Your session has expired. Please log in again.');
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        return;
+      }
       setMessages(prev => [...prev, {
         role: 'ai',
         text: t.menstrual?.sakhi_error || 'I could not process your question right now. Please try again, or contact your ASHA worker for immediate help.',
@@ -161,10 +178,22 @@ function HealthAssistant() {
       return;
     }
     const rec = new SR();
-    rec.lang = 'hi-IN';
+    // Use language context for better rural matching
+    const { lang: currentLang } = useLanguage();
+    const LANG_MAP = { hi: 'hi-IN', en: 'en-IN', ta: 'ta-IN', mr: 'mr-IN', te: 'te-IN', bn: 'bn-IN' };
+    rec.lang = LANG_MAP[currentLang] || 'hi-IN';
+    
     rec.onstart = () => setIsListening(true);
-    rec.onresult = (e) => { setInput(e.results[0][0].transcript); setIsListening(false); };
-    rec.onerror = () => setIsListening(false);
+    rec.onresult = (e) => { 
+      const text = e.results[0][0].transcript;
+      setInput(text); 
+      setIsListening(false); 
+    };
+    rec.onerror = (e) => {
+      console.error('[Sakhi Voice Error]', e.error);
+      setIsListening(false);
+    };
+    rec.onend = () => setIsListening(false);
     rec.start();
   };
 
@@ -440,6 +469,69 @@ function HealthTips() {
   );
 }
 
+/* ── Subcomponent: Period Cycle Tracker ── */
+function PeriodTracker() {
+  const { t } = useLanguage();
+  const [lastPeriod, setLastPeriod] = useState(localStorage.getItem('swasthai_last_period') || '');
+  const [cycleLength] = useState(28); // defaulting to 28 days for rural simplicity
+
+  const calculateNext = () => {
+    if (!lastPeriod) return null;
+    const date = new Date(lastPeriod);
+    date.setDate(date.getDate() + cycleLength);
+    return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  };
+
+  const handleSave = (e) => {
+    const val = e.target.value;
+    setLastPeriod(val);
+    localStorage.setItem('swasthai_last_period', val);
+  };
+
+  const nextPeriod = calculateNext();
+
+  return (
+    <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
+      <div>
+        <h2 className="text-2xl font-black text-slate-900 mb-2">{t.menstrual?.cycle_tracker || 'Cycle Tracker'}</h2>
+        <p className="text-slate-500 font-medium text-sm">{t.menstrual?.cycle_desc || 'Track your periods to know when your next one is coming so you can be prepared.'}</p>
+      </div>
+
+      <div className="bg-rose-50 border-2 border-rose-100 rounded-[2rem] p-6 text-center">
+        <label className="block text-xs font-black text-rose-400 uppercase tracking-widest mb-3">
+          First day of your last period
+        </label>
+        <input 
+          type="date" 
+          value={lastPeriod} 
+          onChange={handleSave}
+          className="w-full max-w-xs mx-auto px-4 py-3 rounded-xl border border-rose-200 bg-white text-slate-700 font-bold focus:ring-4 focus:ring-rose-500/20 outline-none transition-all shadow-sm block"
+        />
+        
+        {nextPeriod && (
+          <div className="mt-8 animate-in slide-in-from-bottom-4 duration-500">
+            <div className="w-16 h-16 bg-white rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-rose-200/50 border border-rose-100 mb-4">
+              <Calendar className="w-8 h-8 text-rose-500" />
+            </div>
+            <p className="text-rose-400 font-bold text-xs uppercase tracking-widest mb-1">Expected Next Period</p>
+            <p className="text-3xl font-black text-rose-900">{nextPeriod}</p>
+            <div className="mt-6 flex items-center justify-center gap-2 text-rose-500 text-sm font-medium">
+              <span className="w-2 h-2 bg-rose-400 rounded-full animate-ping" />
+              <span>Based on a standard 28-day cycle</span>
+            </div>
+          </div>
+        )}
+
+        {!nextPeriod && (
+          <div className="mt-6 p-4 bg-white/60 rounded-xl border border-rose-100/50">
+            <p className="text-rose-800/60 font-semibold text-sm">Select a date above to see your next expected period.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ── Main Page ── */
 export default function MenstrualHealth() {
   const { t } = useLanguage();
@@ -448,6 +540,7 @@ export default function MenstrualHealth() {
 
   const tabs = [
     { id: 'assistant', label: t.menstrual?.ai_assistant || 'AI Assistant',    icon: MessageCircle },
+    { id: 'tracker',   label: t.menstrual?.cycle_tracker || 'Cycle Tracker',   icon: Calendar      },
     { id: 'checkup',   label: t.menstrual?.symptom_check || 'Symptom Check',   icon: HeartPulse    },
     { id: 'pads',      label: t.menstrual?.request_pads || 'Request Pads',    icon: Package       },
     { id: 'tips',      label: t.menstrual?.health_tips || 'Health Tips',     icon: BookOpen      },
@@ -497,6 +590,7 @@ export default function MenstrualHealth() {
           <AnimatePresence mode="wait">
             <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
               {activeTab === 'assistant' && <HealthAssistant />}
+              {activeTab === 'tracker'   && <PeriodTracker />}
               {activeTab === 'checkup'   && <MenstrualCheckup />}
               {activeTab === 'pads'      && <PadRequest />}
               {activeTab === 'tips'      && <HealthTips />}
@@ -505,57 +599,143 @@ export default function MenstrualHealth() {
         </div>
       </main>
 
-      {/* Emergency Modal */}
+      {/* Emergency Modal — extracted to EmergencyModal component below */}
       <AnimatePresence>
         {showEmergency && (
-          <div className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 30 }}
-              className="w-full max-w-md bg-white rounded-[2rem] p-8 shadow-2xl border border-slate-100">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-rose-600 text-white rounded-2xl">
-                    <PhoneCall className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-slate-900 text-lg">{t.menstrual?.emergency_title || 'Emergency Help'}</h3>
-                    <p className="text-xs text-slate-400 font-medium">Your ASHA worker will be notified</p>
-                  </div>
-                </div>
-                <button onClick={() => setShowEmergency(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-6 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm border border-slate-100">
-                    <HeartPulse className="w-5 h-5 text-rose-600" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ASHA Worker</p>
-                    <p className="font-black text-slate-900 text-sm">Sita Devi</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                  <span className="text-[10px] font-black text-emerald-700 uppercase">Available</span>
-                </div>
-              </div>
-              <p className="text-sm text-slate-500 font-medium mb-6 leading-relaxed">
-                {t.menstrual?.emergency_desc || 'Press the button below to immediately alert your ASHA worker. She will call you and come to help.'}
-              </p>
-              <div className="space-y-3">
-                <button onClick={() => { alert('Emergency alert sent to your ASHA worker. She will contact you shortly.'); setShowEmergency(false); }}
-                  className="w-full py-4 bg-rose-600 text-white rounded-xl font-black text-sm uppercase tracking-widest hover:bg-rose-700 transition-all shadow-lg active:scale-95">
-                  {t.menstrual?.alert_asha || 'Alert My ASHA Worker Now'}
-                </button>
-                <a href="tel:108" className="flex items-center justify-center gap-2 w-full py-3.5 bg-slate-900 text-white rounded-xl font-black text-sm uppercase tracking-widest hover:bg-slate-700 transition-all">
-                  <PhoneCall className="w-4 h-4" /> {t.menstrual?.call_ambulance || 'Call 108-Free Ambulance'}
-                </a>
-              </div>
-            </motion.div>
-          </div>
+          <EmergencyModal onClose={() => setShowEmergency(false)} t={t} />
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/* ── Emergency Modal (real ASHA alert — replaces fake window.alert) ─────────── */
+function EmergencyModal({ onClose, t }) {
+  const [alertState, setAlertState] = useState('idle'); // idle | sending | sent | error
+  const [errorMsg,   setErrorMsg]   = useState('');
+
+  const handleAlert = async () => {
+    setAlertState('sending');
+    setErrorMsg('');
+    try {
+      await api.post('/villager/emergency-alert', {
+        alertType: 'menstrual_emergency',
+        message:   "Villager pressed Emergency Help button in Women's Health section.",
+      });
+      setAlertState('sent');
+      // Auto-close after 4 seconds on success
+      setTimeout(() => { onClose(); setAlertState('idle'); }, 4000);
+    } catch (err) {
+      console.error('ASHA alert failed:', err);
+      setAlertState('error');
+      setErrorMsg(
+        err.response?.data?.error ||
+        'Could not reach server. Please call 108 directly — it is free.'
+      );
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 30 }}
+        className="w-full max-w-md bg-white rounded-[2rem] p-8 shadow-2xl border border-slate-100"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-rose-600 text-white rounded-2xl">
+              <PhoneCall className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-black text-slate-900 text-lg">{t.menstrual?.emergency_title || 'Emergency Help'}</h3>
+              <p className="text-xs text-slate-400 font-medium">Your ASHA worker will be notified immediately</p>
+            </div>
+          </div>
+          {alertState !== 'sending' && (
+            <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400">
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+
+        {/* SUCCESS STATE */}
+        {alertState === 'sent' ? (
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            className="text-center py-6"
+          >
+            <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-xl shadow-emerald-200">
+              <CheckCircle className="w-10 h-10 text-white" />
+            </div>
+            <h4 className="font-black text-slate-900 text-xl mb-2">Alert Sent! ✅</h4>
+            <p className="text-slate-500 font-medium text-sm leading-relaxed mb-4">
+              Your ASHA worker has been notified and will contact you shortly. Stay calm — help is coming.
+            </p>
+            <div className="flex items-center justify-center gap-2 text-emerald-600">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-ping" />
+              <span className="text-xs font-black uppercase tracking-widest">Closing automatically...</span>
+            </div>
+          </motion.div>
+        ) : (
+          <>
+            {/* ASHA Worker Card */}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm border border-slate-100">
+                  <HeartPulse className="w-5 h-5 text-rose-600" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ASHA Worker</p>
+                  <p className="font-black text-slate-900 text-sm">Your Village ASHA</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                <span className="text-[10px] font-black text-emerald-700 uppercase">On Call</span>
+              </div>
+            </div>
+
+            <p className="text-sm text-slate-500 font-medium mb-6 leading-relaxed">
+              {t.menstrual?.emergency_desc || 'Press the button below to immediately alert your ASHA worker. She will call you and come to help.'}
+            </p>
+
+            {/* ERROR BANNER — shown when API fails */}
+            {alertState === 'error' && (
+              <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-amber-900 font-black text-sm">Alert Failed</p>
+                  <p className="text-amber-700 font-medium text-xs mt-0.5 leading-relaxed">{errorMsg}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {/* PRIMARY: Real backend ASHA alert */}
+              <button
+                onClick={handleAlert}
+                disabled={alertState === 'sending'}
+                className="w-full py-4 bg-rose-600 text-white rounded-xl font-black text-sm uppercase tracking-widest hover:bg-rose-700 transition-all shadow-lg active:scale-95 disabled:opacity-70 flex items-center justify-center gap-3"
+              >
+                {alertState === 'sending' ? (
+                  <><Loader className="w-4 h-4 animate-spin" /> Sending Alert...</>
+                ) : (
+                  <>{t.menstrual?.alert_asha || 'Alert My ASHA Worker Now'}</>
+                )}
+              </button>
+
+              {/* SECONDARY: 108 direct call — always visible as safety net */}
+              <a
+                href="tel:108"
+                className="flex items-center justify-center gap-2 w-full py-3.5 bg-slate-900 text-white rounded-xl font-black text-sm uppercase tracking-widest hover:bg-slate-700 transition-all"
+              >
+                <PhoneCall className="w-4 h-4" /> {t.menstrual?.call_ambulance || 'Call 108 — Free Ambulance'}
+              </a>
+            </div>
+          </>
+        )}
+      </motion.div>
     </div>
   );
 }

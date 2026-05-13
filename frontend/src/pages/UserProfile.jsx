@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -18,13 +19,29 @@ export default function UserProfile() {
   const [editName, setEditName] = useState('');
   const [profileImage, setProfileImage] = useState(null);
   const [saveStatus, setSaveStatus] = useState('');
+  const [history, setHistory] = useState(null); // { symptoms:[], ambulances:[] }
+  const [historyLoading, setHistoryLoading] = useState(false);
   const fileInputRef = useRef(null);
   
   useEffect(() => {
     if (user) {
       setEditName(user.name || '');
-      setProfileImage(user.profileImage || null);
+      // localStorage bridge: profile image persisted locally until backend file storage is wired
+      const stored = localStorage.getItem(`swasthai_profileImg_${user.id}`);
+      setProfileImage(stored || null);
     }
+  }, [user]);
+
+  // Fetch health history from backend
+  useEffect(() => {
+    if (!user) return;
+    setHistoryLoading(true);
+    import('../services/api').then(({ default: api }) => {
+      api.get('/villager/my-history')
+        .then(r => setHistory(r.data))
+        .catch(() => setHistory({ symptoms: [], ambulances: [] }))
+        .finally(() => setHistoryLoading(false));
+    });
   }, [user]);
 
   const userName   = user?.name     || 'User';
@@ -39,8 +56,13 @@ export default function UserProfile() {
     reader.onloadend = async () => {
       const base64String = reader.result;
       setProfileImage(base64String);
-      try { await updateProfile({ profileImage: base64String }); } 
-      catch (err) { console.error('Failed to save image'); }
+      // Persist to localStorage so image survives page refresh and re-login
+      if (user?.id) {
+        localStorage.setItem(`swasthai_profileImg_${user.id}`, base64String);
+      }
+      // Forward-compat: try backend (currently no image column, localStorage is source of truth)
+      try { await updateProfile({ profileImage: base64String }); }
+      catch { /* localStorage covers this until DB migration */ }
     };
     reader.readAsDataURL(file);
   };
@@ -148,8 +170,14 @@ export default function UserProfile() {
                 }`}>{userRole}</span>
               </div>
             </div>
-            <div className="bg-white/10 backdrop-blur p-3 rounded-2xl border border-white/20">
-              <QrCode className="w-14 h-14 text-emerald-200" />
+            <div className="bg-white p-2 rounded-xl shadow-lg border border-white/20">
+              <QRCodeSVG
+                value={`https://swasthai.app/verify/SID-${String(userId).padStart(6, '0')}`}
+                size={64}
+                bgColor="#ffffff"
+                fgColor="#0A2E24"
+                level="M"
+              />
             </div>
           </div>
         </section>
@@ -255,6 +283,62 @@ export default function UserProfile() {
                   <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all shrink-0" />
                 </button>
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* MY HEALTH HISTORY */}
+        {userRole === 'villager' && (
+          <section className="space-y-3">
+            <h3 className="text-slate-400 font-bold text-[10px] uppercase tracking-widest pl-1">My Health History</h3>
+            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50">
+
+              {historyLoading ? (
+                <div className="p-5 space-y-3">
+                  {[1,2,3].map(i => (
+                    <div key={i} className="h-10 bg-slate-100 rounded-xl animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <>
+                  {/* Symptom checks */}
+                  {(history?.symptoms || []).length === 0 && (history?.ambulances || []).length === 0 ? (
+                    <div className="p-6 text-center text-slate-400 text-sm font-medium">
+                      No activity recorded yet. Use the health tools to get started.
+                    </div>
+                  ) : (
+                    <>
+                      {(history?.symptoms || []).map((s, i) => (
+                        <div key={i} className="flex items-center gap-4 p-4">
+                          <div className="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center shrink-0">
+                            <HeartPulse className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-black text-slate-800 truncate">{s.prediction || 'Symptom Check'}</p>
+                            <p className="text-[10px] text-slate-400 font-medium truncate">{s.symptoms?.slice(0, 60)}</p>
+                          </div>
+                          <span className="text-[9px] font-bold text-indigo-500 bg-indigo-50 px-2 py-1 rounded-full uppercase shrink-0">Check</span>
+                        </div>
+                      ))}
+                      {(history?.ambulances || []).map((a, i) => (
+                        <div key={i} className="flex items-center gap-4 p-4">
+                          <div className="w-9 h-9 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center shrink-0">
+                            <Truck className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-black text-slate-800 truncate">{a.location?.slice(0, 50) || 'Ambulance Request'}</p>
+                            <p className="text-[10px] text-slate-400 font-medium">Priority: {a.priority} · {a.status}</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-1 rounded-full uppercase shrink-0 ${
+                            a.status === 'completed' ? 'text-emerald-600 bg-emerald-50' :
+                            a.status === 'in_progress' ? 'text-blue-600 bg-blue-50' : 'text-rose-500 bg-rose-50'
+                          }`}>{a.status || 'pending'}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </>
+              )}
             </div>
           </section>
         )}

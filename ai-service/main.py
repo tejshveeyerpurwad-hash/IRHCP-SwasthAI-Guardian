@@ -11,12 +11,18 @@ from outbreak_agent import start_agent_background, get_recent_outbreaks
 
 app = FastAPI(title="SwasthAI Guardian: AI Hub")
 
+# AI service is called only by the Node.js backend — never directly by the browser
+# Restrict CORS to backend URL only (open wildcard was a security gap)
+_ALLOWED_ORIGINS = [
+    os.getenv("BACKEND_URL", "http://localhost:5000"),
+    "http://127.0.0.1:5000",   # local dev fallback
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_ALLOWED_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["POST", "GET"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # ── Load disease model ─────────────────────────────────────────────────────────

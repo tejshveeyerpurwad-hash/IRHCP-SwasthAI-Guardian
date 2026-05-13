@@ -16,7 +16,12 @@ export default function AmbulancePage() {
   const [sosLoading, setSosLoading] = useState(false);
   const [dispatched, setDispatched] = useState(false);
   const [eta, setEta] = useState(null);
-  const [dispatchError, setDispatchError] = useState(false); // shows 108 fallback card
+  const [requestId, setRequestId] = useState(null);
+  const [liveStatus, setLiveStatus] = useState('pending'); // pending|assigned|in_progress|completed
+  const [dispatchError, setDispatchError] = useState(false);
+  const [sosCooldown, setSosCooldown] = useState(0); // seconds remaining in cooldown
+  const cooldownRef = React.useRef(null);
+  const pollRef    = React.useRef(null);
   const [formData, setFormData] = useState({
     patientName: user?.name || '',
     emergencyType: '',
@@ -35,9 +40,32 @@ export default function AmbulancePage() {
     { id: 'general',     label: t.ambulance?.general || 'Other Emergency',  hindi: t.ambulance?.general_hi || 'सामान्य आपातकाल', priority: 'Moderate' },
   ];
 
+  // ── Reverse Geocoding via Nominatim (free, no API key required) ────────────
+  // Converts raw GPS coordinates into a human-readable village/district address
+  // that ambulance drivers and NGO workers can actually navigate to.
+  const reverseGeocode = async (lat, lng) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+        { headers: { 'Accept-Language': 'en', 'User-Agent': 'SwasthAIGuardian/1.0 (rural-health)' } }
+      );
+      const data = await res.json();
+      const addr = data.address || {};
+      const parts = [
+        addr.village || addr.hamlet || addr.suburb || addr.town || addr.city,
+        addr.county || addr.state_district,
+        addr.state,
+      ].filter(Boolean);
+      return parts.length ? parts.join(', ') : `${lat}, ${lng}`;
+    } catch {
+      return `${lat}, ${lng}`; // fallback to raw coords if offline
+    }
+  };
+
   const getLocationString = () => {
     if (formData.gpsCoords) {
-      return `GPS: ${formData.gpsCoords.lat}, ${formData.gpsCoords.lng}${formData.landmark ? ` (${formData.landmark})` : ''}`;
+      const coord = `GPS: ${formData.gpsCoords.lat}, ${formData.gpsCoords.lng}`;
+      return formData.landmark ? `${formData.landmark} (${coord})` : coord;
     }
     return formData.landmark || 'Location not specified';
   };
@@ -49,16 +77,18 @@ export default function AmbulancePage() {
     }
     setFormData(prev => ({ ...prev, locStatus: 'loading' }));
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const lat = position.coords.latitude.toFixed(5);
         const lng = position.coords.longitude.toFixed(5);
+        // Fetch human-readable village/district name via Nominatim
+        const humanAddress = await reverseGeocode(lat, lng);
         setFormData(prev => ({
           ...prev,
           locStatus: 'success',
           gpsCoords: { lat, lng },
-          landmark: prev.landmark || `Near GPS: ${lat}, ${lng}`,
+          landmark: prev.landmark || humanAddress,
         }));
-        if (onSuccess) onSuccess(lat, lng);
+        if (onSuccess) onSuccess(lat, lng, humanAddress);
       },
       () => {
         setFormData(prev => ({ ...prev, locStatus: 'error' }));
@@ -73,8 +103,14 @@ export default function AmbulancePage() {
     setSosLoading(true);
     const fire = async (lat, lng) => {
       try {
-        const location = `GPS SOS: ${lat}, ${lng}`;
-        await api.post('/villager/ambulance', {
+        // Reverse-geocode so NGO dashboard shows village name, not raw coordinates
+        const humanAddress = (lat !== 'Unknown')
+          ? await reverseGeocode(lat, lng)
+          : 'Location unavailable';
+        const location = (lat !== 'Unknown')
+          ? `SOS: ${humanAddress} (GPS: ${lat}, ${lng})`
+          : 'SOS: Location unavailable — please call user directly';
+        const res = await api.post('/villager/ambulance', {
           name: user?.name || 'SOS User',
           location,
           priority: 'Critical',
@@ -82,9 +118,28 @@ export default function AmbulancePage() {
         });
         setDispatched(true);
         setEta(8);
+        setLiveStatus('pending');
+        if (res.data?.requestId) setRequestId(res.data.requestId);
+        // Start 60s cooldown
+        setSosCooldown(60);
+        cooldownRef.current = setInterval(() => {
+          setSosCooldown(prev => { if (prev <= 1) { clearInterval(cooldownRef.current); return 0; } return prev - 1; });
+        }, 1000);
       } catch (err) {
-        console.error('SOS dispatch failed:', err);
-        setDispatchError(true);
+        if (err.response?.status === 429) {
+          alert(err.response.data?.error || 'Please wait before sending another request.');
+        } else if (err.response?.status === 401) {
+          alert('Your session has expired. Please log in again.');
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+        } else if (err.response?.status === 500) {
+          console.error('SOS dispatch failed (Server Error):', err);
+          const detailMsg = err.response.data?.details ? ` (${err.response.data.details})` : '';
+          setDispatchError('server' + detailMsg);
+        } else {
+          console.error('SOS dispatch failed:', err);
+          setDispatchError('network');
+        }
       } finally {
         setSosLoading(false);
       }
@@ -115,15 +170,49 @@ export default function AmbulancePage() {
         priority: selectedType?.priority || 'High',
         symptoms: `${selectedType?.label || formData.emergencyType}${formData.contactNumber ? ` | Contact: ${formData.contactNumber}` : ''}`,
       });
-      setEta(response.data?.eta?.replace(' mins', '') || (12 + Math.floor(Math.random() * 6)));
+      const etaVal = response.data?.eta?.replace(' mins', '') || (12 + Math.floor(Math.random() * 6));
+      setEta(etaVal);
+      setLiveStatus('pending');
+      if (response.data?.requestId) setRequestId(response.data.requestId);
       setDispatched(true);
+      // Start status polling every 10 seconds
+      pollRef.current = setInterval(async () => {
+        try {
+          const r = await api.get('/villager/ambulance-status');
+          setLiveStatus(r.data?.status || 'pending');
+          if (r.data?.status === 'completed') clearInterval(pollRef.current);
+        } catch { /* polling failure is non-critical */ }
+      }, 10000);
+      // Start 60s request cooldown
+      setSosCooldown(60);
+      cooldownRef.current = setInterval(() => {
+        setSosCooldown(prev => { if (prev <= 1) { clearInterval(cooldownRef.current); return 0; } return prev - 1; });
+      }, 1000);
     } catch (err) {
-      console.error('Ambulance dispatch failed:', err);
-      setDispatchError(true);
+      if (err.response?.status === 429) {
+        alert(err.response.data?.error || 'Please wait before sending another request.');
+      } else if (err.response?.status === 401) {
+        alert('Your session has expired. Please log in again.');
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      } else if (err.response?.status === 500) {
+        console.error('Ambulance dispatch failed (Server Error):', err);
+        const detailMsg = err.response.data?.details ? ` (${err.response.data.details})` : '';
+        setDispatchError('server' + detailMsg);
+      } else {
+        console.error('Ambulance dispatch failed (Network/Other):', err);
+        setDispatchError('network');
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  // Cleanup intervals on unmount
+  React.useEffect(() => () => {
+    clearInterval(pollRef.current);
+    clearInterval(cooldownRef.current);
+  }, []);
 
   const startVoice = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -272,14 +361,20 @@ export default function AmbulancePage() {
 
                   </form>
 
-                  {/* ── OFFLINE ERROR CARD: shows 108 when API fails ── */}
+                  {/* ── ERROR CARD: shows 108 when API fails ── */}
                   {dispatchError && (
                     <div className="mt-6 p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 animate-in fade-in duration-300">
                       <div className="flex items-start gap-3 mb-4">
-                        <WifiOff className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                         <div>
-                          <p className="font-black text-amber-900 text-sm">इंटरनेट नहीं है — Request नहीं भेज सके</p>
-                          <p className="text-amber-700 font-medium text-xs mt-0.5">No internet — Could not send your request</p>
+                          <p className="font-black text-amber-900 text-sm">
+                            {dispatchError.startsWith('server') 
+                              ? `सर्वर की समस्या ${dispatchError.length > 6 ? dispatchError.substring(6) : ''} — कृपया 108 पर कॉल करें` 
+                              : 'सर्वर से संपर्क नहीं हो सका — 108 पर कॉल करें'}
+                          </p>
+                          <p className="text-amber-700 font-medium text-xs mt-0.5">
+                            {dispatchError.startsWith('server') ? 'Server technical issue' : 'Could not reach server (Check connection)'} — Please call 108 directly
+                          </p>
                         </div>
                       </div>
                       <p className="text-amber-800 font-bold text-xs mb-4 leading-relaxed">
@@ -302,7 +397,7 @@ export default function AmbulancePage() {
                 </div>
 
               ) : (
-                /* DISPATCHED CONFIRMATION */
+                /* DISPATCHED CONFIRMATION — with live status polling */
                 <div className="relative z-10 text-center py-12 animate-in zoom-in-95 duration-700">
                   <div className="w-28 h-28 bg-emerald-500 rounded-full mx-auto flex items-center justify-center border-8 border-emerald-100 shadow-xl shadow-emerald-200 mb-8">
                     <CheckCircle className="w-12 h-12 text-white" />
@@ -311,12 +406,30 @@ export default function AmbulancePage() {
                   <p className="text-slate-500 font-medium mb-6 max-w-sm mx-auto">
                     Your request has been saved and dispatched. Please keep your phone nearby. The driver will contact you.
                   </p>
-                  <div className="inline-flex items-center gap-3 px-6 py-3 bg-emerald-50 border border-emerald-200 rounded-full mb-8">
+                  {/* Live status badge — updates every 10 seconds */}
+                  <div className={`inline-flex items-center gap-3 px-5 py-2.5 rounded-full mb-4 border font-black text-sm ${
+                    liveStatus === 'completed'  ? 'bg-emerald-100 border-emerald-300 text-emerald-800' :
+                    liveStatus === 'in_progress'? 'bg-blue-100 border-blue-300 text-blue-800' :
+                    liveStatus === 'assigned'   ? 'bg-amber-100 border-amber-300 text-amber-800' :
+                                                   'bg-slate-100 border-slate-300 text-slate-600'
+                  }`}>
+                    <div className={`w-2 h-2 rounded-full animate-pulse ${
+                      liveStatus === 'completed'   ? 'bg-emerald-500' :
+                      liveStatus === 'in_progress' ? 'bg-blue-500' :
+                      liveStatus === 'assigned'    ? 'bg-amber-500' : 'bg-slate-400'
+                    }`} />
+                    {liveStatus === 'completed'   ? 'Arrived at location' :
+                     liveStatus === 'in_progress' ? 'Ambulance en route 🚑' :
+                     liveStatus === 'assigned'    ? 'Driver assigned' :
+                                                    'Request received — assigning driver...'}
+                  </div>
+                  <div className="inline-flex items-center gap-3 px-6 py-3 bg-emerald-50 border border-emerald-200 rounded-full mb-8 ml-2">
                     <Clock className="w-5 h-5 text-emerald-600" />
                     <span className="text-emerald-700 font-black text-lg">ETA: ~{eta} minutes</span>
                   </div>
+                  <p className="text-xs text-slate-400 font-medium mb-6">Status updates every 10 seconds automatically</p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <button onClick={() => { setDispatched(false); setFormData(prev => ({ ...prev, locStatus: 'idle', gpsCoords: null })); }}
+                    <button onClick={() => { setDispatched(false); setLiveStatus('pending'); clearInterval(pollRef.current); setFormData(prev => ({ ...prev, locStatus: 'idle', gpsCoords: null })); }}
                       className="px-6 py-3 bg-white border border-slate-200 rounded-xl font-bold text-sm text-slate-600 hover:bg-slate-50 transition-colors">
                       Submit Another Request
                     </button>

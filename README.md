@@ -9,6 +9,18 @@
 
 Most health apps call a third-party AI API and display the result. SwasthAI **owns its intelligence** and operates without a stable internet connection.
 
+---
+
+## 🏆 Strategic Competitive Advantage (IEEE/Hackathon Focus)
+
+*SwasthAI Guardian was built to win. We didn't just build a dashboard; we built a fault-tolerant medical infrastructure.*
+
+1.  **Grounded Intelligence**: Unlike competitors using generic LLM prompts, our **Sakhi RAG engine** is grounded in 38 curated clinical chunks from WHO and MoHFW. Every answer is a medical citation.
+2.  **Autonomous Epidemiology**: Our **Agentic Outbreak Radar** scans village data every 30 minutes to detect clusters. It doesn't wait for a doctor to report an epidemic; it detects it.
+3.  **Legal Readiness**: We are the only team implementing the **DISHA 2023 Consent Modal**, mapping directly to India's new digital health privacy laws.
+4.  **Clinical High-Fidelity**: Our maternal risk assessments use real-time vitals sliders (BP/BS/HR) with **live MoHFW danger alerts** pulsing in the UI, mimicking a real hospital triage system.
+5.  **Hyper-Local**: Support for 5 languages + Voice In/Out means we serve the *entire* population, not just the English-speaking elite.
+
 | What others do | What SwasthAI does |
 |---|---|
 | Single role (patient only) | 3 roles: Villager · NGO · Admin |
@@ -104,7 +116,7 @@ python train_disease_model.py   # regenerates disease_model.pkl + model_accuracy
 
 | Feature | Details |
 |---|---|
-| **Maternal Health Tracker** | WHO-protocol pregnancy risk AI. Form collects **real vitals**: Systolic BP, Diastolic BP, Blood Sugar (mmol/L), Heart Rate. Live-color-coded sliders with danger thresholds. Pulsing red MoHFW banner fires instantly when BP ≥ 160/110. |
+| **Maternal Health Tracker** | WHO-protocol pregnancy risk AI. Form collects **real vitals**: Age, Systolic BP, Diastolic BP, Blood Sugar (mmol/L), Body Temp, and Heart Rate. Live-color-coded sliders with danger thresholds. Pulsing red MoHFW banner fires instantly when BP ≥ 160/110. |
 | **Child Nutrition Monitor** | Weight/height/age inputs. WHO Z-score + BMI calculation. NHM protocol referral advice. SAM/MAM classification. |
 | **Village Health Dashboard** | Population stats, pregnancy cases, malnutrition counts, pad request alerts per village. |
 | **Outbreak Alerts** | AI-detected disease cluster notifications from the autonomous agent. |
@@ -149,12 +161,13 @@ Designed to work on ₹3,000–₹7,000 Android phones on 2G/3G:
 
 ---
 
-## 🌐 Language Support (5 Indian Languages)
+## 🌐 Language Support (6 Indian Languages)
 
-Full bilingual Hindi/English labels across all villager-facing UI. The RAG engine matches queries in:
+All villager-facing UI strings, AI prompts, and voice synthesis language switch instantly. The RAG engine matches queries in:
 - 🇮🇳 **Hindi** (`bahut zyada bleeding`, `bukhar`, `pet dard`)
 - 🇮🇳 **Marathi** (`aajar`, `taap`)
 - 🇮🇳 **Tamil** (`kaaichal`, `vayiru vali`)
+- 🇮🇳 **Telugu** (`jvaram`, `rakt sravamu`)
 - 🇮🇳 **Bengali** (`jor`, `pet byatha`)
 - 🇬🇧 **English**
 
@@ -162,14 +175,47 @@ The language toggle is persistent and affects all UI strings, AI prompts, and vo
 
 ---
 
-## 🚀 Local Development Setup
+## 🚀 Deployment
 
-### Prerequisites
+### 🐳 Docker (Recommended — One Command)
+
+```bash
+# 1. Copy the env template and fill in your secrets
+cp .env.example .env
+
+# 2. Launch all 3 services with health-checked startup ordering
+docker-compose up --build
+```
+
+Services start in order: **AI Service → Backend → Frontend**
+
+| URL | Service |
+|---|---|
+| `http://localhost` | React Frontend (Nginx) |
+| `http://localhost:5000` | Node.js Backend API |
+| `http://localhost:8000` | FastAPI AI Microservice |
+
+**Docker files created:**
+
+| File | Purpose |
+|---|---|
+| `docker-compose.yml` | Orchestrates all 3 services with health checks |
+| `backend/Dockerfile` | Multi-stage Node.js build, runs as non-root user |
+| `ai-service/Dockerfile` | Python + baked ML model, non-root user |
+| `frontend/Dockerfile` | Vite build → Nginx with SPA fallback + security headers |
+| `.dockerignore` | Prevents secrets and node_modules entering images |
+| `.env.example` | Environment variable template (safe to commit) |
+
+---
+
+### 🛠️ Local Development Setup (No Docker)
+
+#### Prerequisites
 - Node.js 18+
 - Python 3.10+
 - pip
 
-### 1. AI Service (start first)
+#### 1. AI Service (start first)
 ```bash
 cd ai-service
 pip install -r requirements.txt
@@ -177,7 +223,7 @@ python train_disease_model.py        # trains & saves disease_model.pkl
 uvicorn main:app --reload --port 8000
 ```
 
-### 2. Backend API
+#### 2. Backend API
 ```bash
 cd backend
 cp .env.example .env                 # set GROQ_API_KEY, JWT_SECRET, ALLOWED_ORIGINS
@@ -187,14 +233,14 @@ npm run dev                          # starts on port 5000
 
 > SQLite database (`swasth_guardian.sqlite`) is created automatically on first run.
 
-### 3. Frontend
+#### 3. Frontend
 ```bash
 cd frontend
 npm install
 npm run dev                          # opens http://localhost:5173
 ```
 
-### Environment Variables (backend/.env)
+### Environment Variables (`.env`)
 ```env
 PORT=5000
 JWT_SECRET=your_jwt_secret_here
@@ -203,6 +249,7 @@ AI_SERVICE_URL=http://127.0.0.1:8000
 ALLOWED_ORIGINS=http://localhost:5173
 AGENT_SECRET=your_agent_secret_here
 ```
+
 
 ---
 
@@ -304,10 +351,14 @@ Voice output via SpeechSynthesisUtterance (🔊 button per message)
 
 | Name | Role |
 |---|---|
-| **Divyansh Gupta** | Team Leader · AI/ML · Backend Architecture · AI Service · Deployment|
+| **Divyansh Gupta** | Team Leader · AI/ML · Backend Architecture · AI Service · Deployment |
 | **Tejshvee Yerpurwad** | Frontend · UX Design · Language Support · RAG Engine |
 
 ---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 📜 Compliance & Standards
 

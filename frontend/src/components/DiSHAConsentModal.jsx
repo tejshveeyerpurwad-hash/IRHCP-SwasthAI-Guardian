@@ -8,8 +8,6 @@
  *   • Digital Information Security in Healthcare Act (DISHA) 2023 — India
  *   • IT (Amendment) Act 2008 — Sensitive Personal Data & Information Rules
  *   • WHO Data Privacy in Digital Health 2023
- *
- * IEEE Tristha Track: demonstrates clinical governance beyond the AI itself.
  */
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';

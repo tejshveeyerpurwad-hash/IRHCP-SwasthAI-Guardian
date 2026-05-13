@@ -5,8 +5,10 @@ import { useLanguage } from '../context/LanguageContext';
 import { 
   HeartPulse, User, LogOut, Menu, X, Shield, 
   Activity, Truck, Scan, Home, Globe, Droplets, Mic, BookOpen,
-  WifiOff, Wifi
+  WifiOff, Wifi, Download, Share2, QrCode, Copy, Check
 } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -16,6 +18,33 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const appUrl = window.location.origin;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(appUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') setInstallPrompt(null);
+  };
 
   const handleHomeClick = (e) => {
     e.preventDefault();
@@ -51,7 +80,8 @@ export default function Navbar() {
     { code: 'en', label: 'English' },
     { code: 'mr', label: 'मराठी' },
     { code: 'ta', label: 'தமிழ்' },
-    { code: 'te', label: 'తెలుగు' }
+    { code: 'te', label: 'తెలుగు' },
+    { code: 'bn', label: 'বাংলা' },
   ];
 
   const villagerLinks = (t) => [
@@ -160,6 +190,25 @@ export default function Navbar() {
             </select>
           </div>
 
+          {/* Share App Button (Permanent) */}
+          <button
+            onClick={() => setShareModalOpen(true)}
+            className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all border border-slate-200"
+            title="Share App / QR Code"
+          >
+            <Share2 className="w-3 h-3" /> Share
+          </button>
+
+          {/* PWA Download Button (Desktop) */}
+          {installPrompt && (
+            <button
+              onClick={handleInstallClick}
+              className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-200 transition-all border border-emerald-200"
+            >
+              <Download className="w-3 h-3" /> App Download
+            </button>
+          )}
+
           <div className="hidden xl:block w-px h-6 bg-slate-200 mx-1" />
 
           {/* Auth Buttons */}
@@ -205,6 +254,22 @@ export default function Navbar() {
         <div className="xl:hidden absolute top-full left-0 right-0 bg-white border-b border-slate-100 shadow-2xl p-4 z-50">
           <div className="flex flex-col gap-2">
             
+            {/* PWA Download Button (Mobile) */}
+            {installPrompt && (
+              <button
+                onClick={handleInstallClick}
+                className="flex items-center justify-between p-4 bg-emerald-600 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest shadow-lg shadow-emerald-200 mb-2 group"
+              >
+                <div className="flex items-center gap-3">
+                  <Download className="w-5 h-5 group-hover:bounce" />
+                  App Download Karein / डाउनलोड करें
+                </div>
+                <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                  <Plus className="w-4 h-4" />
+                </div>
+              </button>
+            )}
+
             {/* User Profile Info in Mobile */}
             {user && (
               <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-2xl mb-2">
@@ -322,6 +387,77 @@ export default function Navbar() {
           <p className="text-[8px] font-black text-rose-400 uppercase tracking-widest text-right pr-1">Emergency Ambulance</p>
         </div>
       )}
+
+      {/* Share Modal */}
+      <AnimatePresence>
+        {shareModalOpen && (
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-[3rem] shadow-2xl w-full max-w-md overflow-hidden relative"
+            >
+              <button 
+                onClick={() => setShareModalOpen(false)}
+                className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full text-slate-400 hover:text-slate-900 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="p-8 lg:p-10">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center">
+                    <QrCode className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Share SwasthAI</h3>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Village Health QR Code</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-6 p-6 bg-slate-50 rounded-[2rem] border border-slate-100 mb-8">
+                  <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                    <QRCodeCanvas value={appUrl} size={180} level="H" />
+                  </div>
+                  <p className="text-[11px] font-bold text-slate-500 text-center px-4">
+                    Scan this code to open the app instantly on another phone.<br/>
+                    इसे दूसरे फ़ोन से स्कैन करें।
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <button
+                    onClick={handleCopyLink}
+                    className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all"
+                  >
+                    {copied ? (
+                      <><Check className="w-4 h-4" /> Link Copied!</>
+                    ) : (
+                      <><Copy className="w-4 h-4" /> Copy App Link</>
+                    )}
+                  </button>
+                  
+                  {installPrompt && (
+                    <button
+                      onClick={() => { setShareModalOpen(false); handleInstallClick(); }}
+                      className="w-full h-14 bg-emerald-100 text-emerald-700 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-emerald-200 transition-all border border-emerald-200"
+                    >
+                      <Download className="w-4 h-4" /> Install on this Phone
+                    </button>
+                  )}
+                </div>
+
+                <div className="mt-8 pt-8 border-t border-slate-100">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">
+                    Requires only 2MB space • Works Offline
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }
