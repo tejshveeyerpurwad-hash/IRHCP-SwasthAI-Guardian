@@ -29,7 +29,9 @@ if (cluster.isPrimary) {
 } else {
   const app = express();
   const PORT = process.env.PORT || 5000;
-  const DB_PATH = path.resolve('swasth_guardian.sqlite');
+  // Support persistent disk on Render/Railway
+  const DATA_DIR = process.env.DATA_DIR || '.';
+  const DB_PATH = path.join(DATA_DIR, 'swasth_guardian.sqlite');
 
   // Security headers — Helmet.js (OWASP Top 10 compliant)
   // CSP disabled: Vite inline scripts; COEP disabled: cross-origin AI service calls
