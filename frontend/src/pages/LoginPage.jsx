@@ -129,7 +129,7 @@ export default function LoginPage() {
       </motion.div>
 
       {/* ── RIGHT PANEL — FORM ── */}
-      <div className="w-full lg:w-[58%] flex flex-col justify-center items-center p-6 lg:p-14 overflow-y-auto">
+      <div className="w-full lg:w-[58%] flex flex-col justify-center items-center p-5 sm:p-8 lg:p-14 overflow-y-auto">
         <motion.div
           initial={{ scale: 0.96, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -145,14 +145,14 @@ export default function LoginPage() {
           </div>
 
           {/* Header */}
-          <div className="mb-10">
-            <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-widest rounded-full mb-4">
+          <div className="mb-5 sm:mb-10">
+            <span className="inline-block px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[8px] sm:text-[10px] font-black uppercase tracking-widest rounded-full mb-2 sm:mb-4">
               {t.secure_signin || 'Secure Sign In'}
             </span>
-            <h2 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight mb-2">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight mb-1.5 sm:mb-2">
               {t.welcome_back || 'Welcome back'}
             </h2>
-            <p className="text-slate-400 font-medium text-sm max-w-sm leading-relaxed">
+            <p className="text-slate-400 font-medium text-[11px] sm:text-sm max-w-sm leading-relaxed">
               {t.signin_desc || 'Sign in to access your health dashboard, records, and emergency services.'}
             </p>
           </div>
@@ -174,23 +174,23 @@ export default function LoginPage() {
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">
               {t.signing_in_as || 'I am signing in as'}
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-3 gap-2 sm:gap-3">
               {roles.map(r => (
                 <button
                   key={r.id}
                   type="button"
                   onClick={() => handleInputChange({ target: { name: 'role', value: r.id } })}
-                  className={`p-4 rounded-2xl border-2 text-left transition-all group ${
+                  className={`p-2.5 sm:p-4 rounded-xl border-2 text-left transition-all group ${
                     formData.role === r.id
                       ? 'bg-white border-emerald-500 shadow-lg shadow-emerald-100'
                       : 'bg-slate-50 border-slate-100 hover:border-emerald-200'
                   }`}
                 >
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-3 transition-all ${formData.role === r.id ? 'bg-emerald-600 text-white' : 'bg-white text-slate-400 border border-slate-100'}`}>
-                    <r.icon className="w-4 h-4" />
+                  <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center mb-1.5 sm:mb-3 transition-all ${formData.role === r.id ? 'bg-emerald-600 text-white' : 'bg-white text-slate-400 border border-slate-100'}`}>
+                    <r.icon className="w-3.5 h-3.5" />
                   </div>
-                  <p className={`font-black text-xs leading-tight ${formData.role === r.id ? 'text-slate-900' : 'text-slate-500'}`}>{r.label}</p>
-                  <p className={`text-[9px] font-bold mt-0.5 ${formData.role === r.id ? 'text-emerald-600' : 'text-slate-300'}`}>{r.sub}</p>
+                  <p className={`font-black text-[9px] sm:text-xs leading-tight ${formData.role === r.id ? 'text-slate-900' : 'text-slate-500'}`}>{r.label}</p>
+                  <p className={`text-[7px] sm:text-[9px] font-bold mt-0.5 ${formData.role === r.id ? 'text-emerald-600' : 'text-slate-300'}`}>{r.sub}</p>
                 </button>
               ))}
             </div>
@@ -214,50 +214,50 @@ export default function LoginPage() {
             </div>
 
             {/* Phone / Email */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                {t.phone_email || 'Phone Number or Email'}
+            <div className="space-y-1">
+              <label className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                {t.phone_email || 'Phone or Email'}
               </label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-300 group-focus-within:text-emerald-500 transition-colors">
-                  {formData.identifier.includes('@') ? <Mail className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
+                <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-slate-300 group-focus-within:text-emerald-500 transition-colors">
+                  {formData.identifier.includes('@') ? <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                 </div>
                 <input
                   type="text"
                   name="identifier"
                   value={formData.identifier}
                   onChange={handleInputChange}
-                  placeholder="e.g. 9876543210 or name@email.com"
+                  placeholder="ID / Email..."
                   required
-                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 text-sm font-bold text-slate-900 outline-none transition-all placeholder:text-slate-300"
+                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 text-sm font-bold text-slate-900 outline-none transition-all placeholder:text-slate-300"
                 />
               </div>
             </div>
 
             {/* Password / OTP */}
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <div className="flex items-center justify-between ml-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  {loginMethod === 'password' ? 'Password' : 'One-Time Password (OTP)'}
+                <label className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  {loginMethod === 'password' ? 'Password' : 'OTP'}
                 </label>
                 {loginMethod === 'password' && (
-                  <button type="button" className="text-[10px] font-black text-emerald-600 hover:text-emerald-700 uppercase tracking-widest">
-                    Forgot Password?
+                  <button type="button" className="text-[9px] font-black text-emerald-600 hover:text-emerald-700 uppercase tracking-widest">
+                    Forgot?
                   </button>
                 )}
               </div>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-300 group-focus-within:text-emerald-500 transition-colors">
-                  <Lock className="w-4 h-4" />
+                <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-slate-300 group-focus-within:text-emerald-500 transition-colors">
+                  <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
                 <input
                   type={loginMethod === 'password' ? 'password' : 'text'}
                   name={loginMethod === 'password' ? 'password' : 'otp'}
                   value={loginMethod === 'password' ? formData.password : formData.otp}
                   onChange={handleInputChange}
-                  placeholder={loginMethod === 'password' ? '••••••••' : 'Enter 6-digit OTP'}
+                  placeholder={loginMethod === 'password' ? '••••••••' : '6-digit OTP'}
                   required
-                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 text-sm font-bold text-slate-900 outline-none transition-all placeholder:text-slate-300"
+                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 text-sm font-bold text-slate-900 outline-none transition-all placeholder:text-slate-300"
                 />
               </div>
             </div>

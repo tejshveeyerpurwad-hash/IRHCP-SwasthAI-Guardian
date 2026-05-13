@@ -230,23 +230,23 @@ function HealthAssistant() {
       )}
 
         {/* ── HEADER ─────────────────────────────────────────────────── */}
-      <div className="mb-4 p-3 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3">
-        <div className="w-8 h-8 bg-rose-600 rounded-xl flex items-center justify-center shrink-0">
-          <Bot className="w-4 h-4 text-white" />
+      <div className="mb-4 p-2.5 sm:p-3 bg-rose-50 border border-rose-100 rounded-xl sm:rounded-2xl flex items-center gap-2.5 sm:gap-3">
+        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-rose-600 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0">
+          <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
         </div>
         <div>
-          <p className="font-black text-rose-900 text-xs uppercase tracking-widest">Sakhi-AI · Grounded Health Assistant</p>
-          <p className="text-[9px] text-rose-400 font-medium">Powered by WHO/MoHFW verified knowledge · Voice-Enabled</p>
+          <p className="font-black text-rose-900 text-[10px] sm:text-xs uppercase tracking-widest leading-none sm:leading-normal">Sakhi-AI · Health Assistant</p>
+          <p className="text-[8px] sm:text-[9px] text-rose-400 font-medium leading-none sm:leading-normal mt-0.5 sm:mt-0">Verified WHO/MoHFW guidelines</p>
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
           {isSpeaking && (
             <button onClick={() => window.speechSynthesis.cancel()}
-              className="px-2 py-1 bg-amber-100 border border-amber-200 text-amber-700 rounded-lg text-[9px] font-black uppercase tracking-widest animate-pulse">
-              🔊 Speaking...
+              className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-amber-100 border border-amber-200 text-amber-700 rounded-md sm:rounded-lg text-[7px] sm:text-[9px] font-black uppercase tracking-widest animate-pulse">
+              🔊 Speaking
             </button>
           )}
-          <div className={`w-2 h-2 rounded-full animate-pulse ${isOnline ? 'bg-emerald-500' : 'bg-amber-400'}`} />
-          <span className={`text-[10px] font-black uppercase ${isOnline ? 'text-emerald-700' : 'text-amber-600'}`}>
+          <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full animate-pulse ${isOnline ? 'bg-emerald-500' : 'bg-amber-400'}`} />
+          <span className={`text-[8px] sm:text-[10px] font-black uppercase ${isOnline ? 'text-emerald-700' : 'text-amber-600'}`}>
             {isOnline ? 'Live' : 'Offline'}
           </span>
         </div>
@@ -262,8 +262,8 @@ function HealthAssistant() {
                 <Bot className="w-4 h-4 text-white" />
               </div>
             )}
-            <div className="max-w-[80%] space-y-1.5">
-              <div className={`px-4 py-3 rounded-2xl text-[13px] font-medium leading-relaxed relative ${
+            <div className="max-w-[85%] sm:max-w-[80%] space-y-1.5">
+              <div className={`px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl text-[12px] sm:text-[13px] font-medium leading-relaxed relative ${
                 m.role === 'user'
                   ? 'bg-slate-900 text-white rounded-tr-sm'
                   : m.isError
@@ -272,8 +272,8 @@ function HealthAssistant() {
               }`}>
                 {m.text}
                 {m.role === 'ai' && !m.isError && (
-                  <div className="absolute -right-2 -top-2 w-5 h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-sm border-2 border-white">
-                    <CheckCircle2 className="w-3 h-3" />
+                  <div className="absolute -right-1.5 -top-1.5 w-4.5 h-4.5 sm:w-5 sm:h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-sm border-2 border-white">
+                    <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                   </div>
                 )}
               </div>
@@ -553,40 +553,40 @@ export default function MenstrualHealth() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-28 pb-24">
 
         {/* Header */}
-        <header className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
-                <p className="text-[10px] font-black text-rose-500 uppercase tracking-[0.4em]">{t.menstrual?.safe_private || 'Safe & Private'}</p>
+        <header className="mb-6 sm:mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 sm:gap-4">
+            <div className="space-y-1.5 sm:space-y-0">
+              <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-rose-500 rounded-full animate-pulse" />
+                <p className="text-[8px] sm:text-[10px] font-black text-rose-500 uppercase tracking-[0.3em] sm:tracking-[0.4em]">{t.menstrual?.safe_private || 'Safe & Private'}</p>
               </div>
-              <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
                 {t.menstrual?.title || "Women's Health"}
               </h1>
-              <p className="text-slate-500 font-medium mt-2 text-sm max-w-md leading-relaxed">
-                {t.menstrual?.subtitle || 'AI-powered health guidance, symptom checking, and free pad access - completely private and confidential.'}
+              <p className="text-slate-500 font-medium mt-1.5 sm:mt-2 text-xs sm:text-sm max-w-md leading-relaxed">
+                {t.menstrual?.subtitle || 'AI health guidance, symptom checking, and free pad access - private and confidential.'}
               </p>
             </div>
             <button onClick={() => setShowEmergency(true)}
-              className="flex items-center gap-2 px-5 py-3 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-rose-200 hover:bg-rose-700 transition-all shrink-0">
-              <PhoneCall className="w-4 h-4" /> {t.menstrual?.emergency_help || 'Emergency Help'}
+              className="flex items-center justify-center gap-2 px-5 py-3.5 sm:py-3 bg-rose-600 text-white rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-widest shadow-lg shadow-rose-200 hover:bg-rose-700 transition-all shrink-0">
+              <PhoneCall className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> {t.menstrual?.emergency_help || 'Emergency Help'}
             </button>
           </div>
         </header>
 
         {/* Tab Nav */}
-        <div className="flex flex-wrap gap-2 mb-6 p-1.5 bg-white border border-slate-100 rounded-2xl shadow-sm w-fit">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-5 sm:mb-6 p-1 sm:p-1.5 bg-white border border-slate-100 rounded-xl sm:rounded-2xl shadow-sm w-full sm:w-fit overflow-x-auto sm:overflow-x-visible no-scrollbar">
           {tabs.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'}`}>
-              <tab.icon className="w-3.5 h-3.5" />
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-black text-[9px] sm:text-[11px] uppercase tracking-widest transition-all shrink-0 ${activeTab === tab.id ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'}`}>
+              <tab.icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               {tab.label}
             </button>
           ))}
         </div>
 
         {/* Content */}
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 md:p-10 min-h-[400px] md:min-h-[500px]">
+        <div className="bg-white rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 shadow-sm p-5 sm:p-8 md:p-10 min-h-[350px] md:min-h-[500px]">
           <AnimatePresence mode="wait">
             <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
               {activeTab === 'assistant' && <HealthAssistant />}

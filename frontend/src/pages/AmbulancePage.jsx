@@ -232,16 +232,16 @@ export default function AmbulancePage() {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-28 pb-24">
 
         {/* HEADER */}
-        <header className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
-            <p className="text-[10px] font-black text-rose-500 uppercase tracking-[0.4em]">Emergency Services Active</p>
+        <header className="mb-4 sm:mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="flex items-center gap-1 sm:gap-2 mb-1.5 sm:mb-3">
+            <div className="w-1 h-1 sm:w-2 sm:h-2 bg-rose-500 rounded-full animate-pulse" />
+            <p className="text-[7px] sm:text-[10px] font-black text-rose-500 uppercase tracking-[0.3em] sm:tracking-[0.4em]">Emergency Active</p>
           </div>
-          <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-            {t.ambulance?.title || 'Request an Ambulance'}
+          <h1 className="text-xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+            {t.ambulance?.title || 'Request Ambulance'}
           </h1>
-          <p className="text-slate-500 font-medium mt-3 text-base max-w-xl leading-relaxed">
-            {t.ambulance?.subtitle || 'Fill the form below, or press the one-tap SOS button to instantly dispatch help to your GPS location.'}
+          <p className="text-slate-500 font-medium mt-1 sm:mt-3 text-[11px] sm:text-base max-w-xl leading-relaxed">
+            {t.ambulance?.subtitle || 'Press SOS for instant help or fill the form below.'}
           </p>
         </header>
 
@@ -249,7 +249,7 @@ export default function AmbulancePage() {
 
           {/* LEFT: MAIN FORM / CONFIRMATION */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 md:p-10 relative overflow-hidden">
+            <div className="bg-white rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 shadow-sm p-5 sm:p-8 md:p-10 relative overflow-hidden">
               <div className="absolute right-[-15%] top-[-15%] w-72 h-72 bg-rose-50 rounded-full blur-[80px] pointer-events-none" />
 
               {!dispatched ? (
@@ -286,23 +286,23 @@ export default function AmbulancePage() {
 
                     {/* Emergency Type */}
                     <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{t.ambulance?.emergency_type || 'Emergency Type / आपातकाल का प्रकार'}</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 sm:mb-4">{t.ambulance?.emergency_type || 'Emergency Type'}</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
                         {emergencyTypes.map((type) => (
                           <button
                             key={type.id}
                             type="button"
                             onClick={() => setFormData({ ...formData, emergencyType: type.id })}
-                            className={`p-4 rounded-2xl border-2 text-left transition-all ${
+                            className={`p-3 sm:p-4 rounded-xl border-2 text-left transition-all ${
                               formData.emergencyType === type.id
                                 ? 'bg-rose-50 border-rose-500 shadow-sm shadow-rose-100'
                                 : 'bg-white border-slate-100 hover:border-rose-200'
                             }`}
                           >
-                            <span className={`block font-black text-sm leading-tight ${formData.emergencyType === type.id ? 'text-rose-700' : 'text-slate-700'}`}>
+                            <span className={`block font-black text-[11px] sm:text-sm leading-tight ${formData.emergencyType === type.id ? 'text-rose-700' : 'text-slate-700'}`}>
                               {type.label}
                             </span>
-                            <span className="block text-[10px] font-bold text-slate-400 mt-1">{type.hindi}</span>
+                            <span className="block text-[8px] sm:text-[10px] font-bold text-slate-400 mt-0.5 sm:mt-1">{type.hindi}</span>
                           </button>
                         ))}
                       </div>
@@ -310,12 +310,12 @@ export default function AmbulancePage() {
 
                     {/* Location */}
                     <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{t.ambulance?.location || 'Location / आपकी लोकेशन'}</p>
-                      <div className="space-y-3">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 sm:mb-4">{t.ambulance?.location || 'Location / आपकी लोकेशन'}</p>
+                      <div className="space-y-2.5 sm:space-y-3">
                         <button
                           type="button"
                           onClick={() => captureGPS()}
-                          className={`w-full p-4 rounded-xl border-2 flex items-center justify-center gap-3 transition-all font-bold text-sm ${
+                          className={`w-full p-3.5 sm:p-4 rounded-xl border-2 flex items-center justify-center gap-2.5 sm:gap-3 transition-all font-bold text-xs sm:text-sm ${
                             formData.locStatus === 'success'
                               ? 'bg-emerald-50 border-emerald-400 text-emerald-700'
                               : formData.locStatus === 'loading'
@@ -325,22 +325,22 @@ export default function AmbulancePage() {
                               : 'bg-rose-50 border-rose-400 text-rose-700 hover:bg-rose-100'
                           }`}
                         >
-                          {formData.locStatus === 'idle'    && <><Navigation className="w-4 h-4" /> Use GPS Location</>}
-                          {formData.locStatus === 'loading' && <><Activity className="w-4 h-4 animate-pulse" /> Finding your location...</>}
-                          {formData.locStatus === 'success' && <><CheckCircle className="w-4 h-4" /> GPS Location Saved!</>}
-                          {formData.locStatus === 'error'   && <><AlertCircle className="w-4 h-4" /> GPS failed — click to retry</>}
+                          {formData.locStatus === 'idle'    && <><Navigation className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Use GPS Location</>}
+                          {formData.locStatus === 'loading' && <><Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-pulse" /> Finding your location...</>}
+                          {formData.locStatus === 'success' && <><CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> GPS Location Saved!</>}
+                          {formData.locStatus === 'error'   && <><AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> GPS failed — click to retry</>}
                         </button>
 
                         <div className="relative">
                           <input
                             type="text"
-                            placeholder="Or describe landmark (e.g., Near Shiva Temple, Rampur)..."
+                            placeholder="Or describe landmark..."
                             value={formData.landmark}
                             onChange={(e) => setFormData({ ...formData, landmark: e.target.value, locStatus: 'idle', gpsCoords: null })}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 pr-12 font-medium text-slate-800 text-sm focus:border-rose-400 focus:ring-4 focus:ring-rose-500/5 outline-none transition-all"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-3.5 pr-12 font-medium text-slate-800 text-xs sm:text-sm focus:border-rose-400 focus:ring-4 focus:ring-rose-500/5 outline-none transition-all"
                           />
-                          <button type="button" onClick={startVoice} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-rose-100 text-rose-600 rounded-lg hover:bg-rose-200 transition-colors">
-                            <Mic className="w-4 h-4" />
+                          <button type="button" onClick={startVoice} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 bg-rose-100 text-rose-600 rounded-lg hover:bg-rose-200 transition-colors">
+                            <Mic className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           </button>
                         </div>
                       </div>
@@ -443,27 +443,27 @@ export default function AmbulancePage() {
           <div className="space-y-5">
 
             {/* ONE-TAP SOS BUTTON */}
-            <div className="bg-rose-600 rounded-[2rem] p-7 text-white relative overflow-hidden">
-              <div className="absolute inset-0 bg-rose-700/30 rounded-[2rem] pointer-events-none" />
+            <div className="bg-rose-600 rounded-2xl sm:rounded-[2rem] p-5 sm:p-7 text-white relative overflow-hidden">
+              <div className="absolute inset-0 bg-rose-700/30 pointer-events-none" />
               <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-4">
-                  <Zap className="w-4 h-4 text-rose-200" />
-                  <p className="text-[10px] font-black text-rose-200 uppercase tracking-[0.3em]">One-Tap Emergency</p>
+                <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-4">
+                  <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-rose-200" />
+                  <p className="text-[8px] sm:text-[10px] font-black text-rose-200 uppercase tracking-[0.2em] sm:tracking-[0.3em]">One-Tap Emergency</p>
                 </div>
-                <h3 className="text-2xl font-black mb-2 tracking-tight">{t.ambulance?.no_time || 'No time to fill form?'}</h3>
-                <p className="text-rose-100/80 text-sm font-medium leading-relaxed mb-6">
-                  {t.ambulance?.sos_desc || "Press this button. We will use your phone's GPS to find you and dispatch the nearest ambulance instantly."}
+                <h3 className="text-lg sm:text-2xl font-black mb-1.5 sm:mb-2 tracking-tight">{t.ambulance?.no_time || 'Emergency SOS'}</h3>
+                <p className="text-rose-100/80 text-[11px] sm:text-sm font-medium leading-relaxed mb-4 sm:mb-6">
+                  {t.ambulance?.sos_desc || "Instant help to your GPS location."}
                 </p>
                 <button
                   type="button"
                   onClick={handleSOS}
                   disabled={sosLoading || dispatched}
-                  className="w-full py-5 bg-white text-rose-600 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-rose-50 active:scale-95 transition-all shadow-xl flex items-center justify-center gap-3 disabled:opacity-70"
+                  className="w-full py-3.5 sm:py-5 bg-white text-rose-600 rounded-xl sm:rounded-2xl text-[11px] sm:text-sm font-black uppercase tracking-widest hover:bg-rose-50 active:scale-95 transition-all shadow-xl flex items-center justify-center gap-2.5 sm:gap-3 disabled:opacity-70"
                 >
                   {sosLoading ? (
-                    <><Activity className="w-5 h-5 animate-pulse" /> Locating you...</>
+                    <><Activity className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" /> Locating...</>
                   ) : (
-                    <><AlertTriangle className="w-5 h-5" /> {t.ambulance?.sos_btn || 'SOS — Send Help Now'}</>
+                    <><AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" /> {t.ambulance?.sos_btn || 'SEND HELP NOW'}</>
                   )}
                 </button>
               </div>

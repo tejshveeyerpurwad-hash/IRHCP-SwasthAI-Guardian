@@ -64,31 +64,31 @@ export default function AdminDashboard() {
         <motion.header 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-12 flex flex-col md:flex-row justify-between items-end gap-8 pb-10 border-b border-slate-200"
+          className="mb-6 sm:mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-5 sm:gap-8 pb-6 sm:pb-8 border-b border-slate-200"
         >
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 text-emerald-600 font-black uppercase tracking-[0.4em] text-[10px]">
-               <ActivityIcon className="w-4 h-4" /> SYSTEM OVERWATCH: ACTIVE
+          <div className="space-y-1 sm:space-y-2">
+            <div className="flex items-center gap-2 sm:gap-3 text-emerald-600 font-black uppercase tracking-[0.3em] sm:tracking-[0.4em] text-[8px] sm:text-[10px]">
+               <ActivityIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> SYSTEM OVERWATCH: ACTIVE
             </div>
-            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none">
                Executive <span className="text-emerald-600 italic">Command.</span>
             </h1>
-            <p className="text-slate-400 font-bold text-lg uppercase tracking-widest">Village Health Platform Oversight</p>
+            <p className="text-slate-400 font-bold text-xs sm:text-lg uppercase tracking-widest">Village Health Oversight</p>
           </div>
 
-          <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="flex items-center gap-3 sm:gap-4 w-full md:w-auto">
             <div className="relative flex-1 md:w-96 group">
-              <Search className="w-5 h-5 absolute left-5 top-1/2 transform -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
+              <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-4 sm:left-5 top-1/2 transform -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
               <input 
                 type="text" 
-                placeholder="Search village identifiers..." 
-                className="input-field pl-14"
+                placeholder="Search villages..." 
+                className="input-field pl-11 sm:pl-14 py-3 sm:py-4 text-xs sm:text-sm"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <button className="p-4 bg-white border border-slate-100 text-slate-400 rounded-2xl hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm">
-              <PlusCircle className="w-6 h-6" />
+            <button className="p-3 sm:p-4 bg-white border border-slate-100 text-slate-400 rounded-xl sm:rounded-2xl hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm shrink-0">
+              <PlusCircle className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           </div>
         </motion.header>
@@ -98,33 +98,33 @@ export default function AdminDashboard() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-8 sm:mb-12"
         >
           {[
-            { label: 'Active Service Nodes', value: '124', icon: Globe, color: 'blue', trend: '+4', trendType: 'pos' },
-            { label: 'Platform Population', value: '42.8k', icon: Users, color: 'indigo', trend: '+1.2%', trendType: 'pos' },
-            { label: 'Clinical Red-Alerts', value: '18', icon: AlertTriangle, color: 'rose', trend: '-2', trendType: 'pos' },
-            { label: 'Dispatch Uptime', value: '99.9%', icon: Truck, color: 'emerald', trend: 'Stable', trendType: 'neut' },
+            { label: 'Active Nodes', value: '124', icon: Globe, color: 'blue', trend: '+4', trendType: 'pos' },
+            { label: 'Population', value: '42.8k', icon: Users, color: 'indigo', trend: '+1.2%', trendType: 'pos' },
+            { label: 'Red-Alerts', value: '18', icon: AlertTriangle, color: 'rose', trend: '-2', trendType: 'pos' },
+            { label: 'Uptime', value: '99.9%', icon: Truck, color: 'emerald', trend: 'Stable', trendType: 'neut' },
           ].map(m => (
             <motion.div 
               key={m.label} 
               variants={itemVariants}
               whileHover={{ y: -5 }}
-              className="stat-card p-8 flex flex-col justify-between"
+              className="stat-card p-4 sm:p-8 flex flex-col justify-between"
             >
-               <div className="flex justify-between items-start mb-6">
-                  <div className={`p-4 bg-slate-50 text-slate-900 rounded-2xl border border-slate-100`}>
-                    <m.icon className="w-6 h-6" />
+               <div className="flex justify-between items-start mb-4 sm:mb-6">
+                  <div className={`p-2.5 sm:p-4 bg-slate-50 text-slate-900 rounded-xl sm:rounded-2xl border border-slate-100`}>
+                    <m.icon className="w-4 h-4 sm:w-6 sm:h-6" />
                   </div>
-                  <span className={`text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest ${
+                  <span className={`text-[8px] sm:text-[10px] font-black px-2 sm:px-3 py-1 sm:py-1.5 rounded-full uppercase tracking-widest ${
                     m.trendType === 'pos' ? 'bg-emerald-50 text-emerald-600' : m.trendType === 'neut' ? 'bg-blue-50 text-blue-600' : 'bg-rose-50 text-rose-600'
                   }`}>
                     {m.trend}
                   </span>
                </div>
                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">{m.label}</p>
-                  <h3 className="text-4xl font-black text-slate-900 tracking-tighter leading-none">{m.value}</h3>
+                  <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 sm:mb-2">{m.label}</p>
+                  <h3 className="text-xl sm:text-4xl font-black text-slate-900 tracking-tighter leading-none">{m.value}</h3>
                </div>
             </motion.div>
           ))}
@@ -136,20 +136,20 @@ export default function AdminDashboard() {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="premium-card p-6 md:p-10 lg:col-span-2 shadow-2xl shadow-slate-200/50"
+            className="premium-card p-5 sm:p-10 lg:col-span-2 shadow-2xl shadow-slate-200/50"
           >
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-12 gap-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 sm:mb-12 gap-4 sm:gap-6">
               <div>
-                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Clinical Surveillance Node</h2>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">Disease Outbreak Analytics & Risk Vectors</p>
+                <h2 className="text-lg sm:text-2xl font-black text-slate-900 uppercase tracking-tighter">Clinical Surveillance</h2>
+                <p className="text-[8px] sm:text-xs font-black text-slate-400 uppercase tracking-widest mt-0.5 sm:mt-1">Outbreak Analytics & Risk Vectors</p>
               </div>
-              <div className="flex gap-2 bg-slate-50 p-1.5 rounded-2xl">
-                <button className="px-5 py-2 hover:bg-white text-slate-400 hover:text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all">Weekly</button>
-                <button className="px-5 py-2 bg-white text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-xl shadow-sm border border-slate-100">Monthly</button>
+              <div className="flex gap-1.5 sm:gap-2 bg-slate-50 p-1 sm:p-1.5 rounded-xl sm:rounded-2xl w-full sm:w-auto">
+                <button className="flex-1 sm:flex-none px-3 sm:px-5 py-2 hover:bg-white text-slate-400 hover:text-slate-900 text-[8px] sm:text-[10px] font-black uppercase tracking-widest rounded-lg sm:rounded-xl transition-all">Week</button>
+                <button className="flex-1 sm:flex-none px-3 sm:px-5 py-2 bg-white text-slate-900 text-[8px] sm:text-[10px] font-black uppercase tracking-widest rounded-lg sm:rounded-xl shadow-sm border border-slate-100">Month</button>
               </div>
             </div>
             
-            <div className="h-96 w-full">
+            <div className="h-64 sm:h-96 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={data}>
                   <defs>
@@ -159,13 +159,13 @@ export default function AdminDashboard() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 900}} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 900}} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 8, fontWeight: 900}} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 8, fontWeight: 900}} />
                   <Tooltip 
-                    contentStyle={{ borderRadius: '2rem', border: 'none', boxShadow: '0 32px 64px -16px rgba(0,0,0,0.1)', padding: '24px' }} 
-                    itemStyle={{ fontWeight: '900', fontSize: '12px', textTransform: 'uppercase' }}
+                    contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 16px 32px -8px rgba(0,0,0,0.1)', padding: '12px' }} 
+                    itemStyle={{ fontWeight: '900', fontSize: '10px', textTransform: 'uppercase' }}
                   />
-                  <Area type="monotone" dataKey="cases" stroke="#10b981" strokeWidth={5} fillOpacity={1} fill="url(#colorCases)" />
+                  <Area type="monotone" dataKey="cases" stroke="#10b981" strokeWidth={3} sm:strokeWidth={5} fillOpacity={1} fill="url(#colorCases)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -175,21 +175,21 @@ export default function AdminDashboard() {
           <div className="space-y-6">
             <motion.div 
                whileHover={{ y: -5 }}
-               className="premium-card p-8 bg-[#0A2E24] text-white border-none shadow-2xl shadow-emerald-900/20 relative overflow-hidden group"
+               className="premium-card p-6 sm:p-8 bg-[#0A2E24] text-white border-none shadow-2xl shadow-emerald-900/20 relative overflow-hidden group"
             >
                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/grid-me.png')] opacity-10" />
-               <div className="flex justify-between items-start mb-8 relative z-10">
-                  <div className="w-14 h-14 bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 flex items-center justify-center">
-                    <Truck className="w-7 h-7 text-emerald-400 group-hover:scale-110 transition-transform" />
+               <div className="flex justify-between items-start mb-6 sm:mb-8 relative z-10">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/10 rounded-xl sm:rounded-2xl backdrop-blur-xl border border-white/20 flex items-center justify-center">
+                    <Truck className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-400 group-hover:scale-110 transition-transform" />
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] bg-rose-600 px-3 py-1.5 rounded-full animate-pulse">Critical Protocol</span>
+                  <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest bg-rose-600 px-2.5 py-1.5 rounded-full animate-pulse">Critical</span>
                </div>
-               <h3 className="text-2xl font-black uppercase tracking-tighter relative z-10">Emergency Rescue</h3>
-               <p className="text-emerald-100/60 text-sm mt-3 leading-relaxed font-bold uppercase tracking-wide relative z-10">
-                 Dispatch request from Sector 9. Bio-marker markers indicate Acute Myocardial Pulse detected.
+               <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tighter relative z-10">Emergency</h3>
+               <p className="text-emerald-100/60 text-[11px] sm:text-sm mt-2 sm:mt-3 leading-relaxed font-bold uppercase tracking-wide relative z-10">
+                 Dispatch request from Sector 9. Acute Myocardial detected.
                </p>
-               <button className="w-full mt-8 py-5 bg-white hover:bg-emerald-50 text-[#0A2E24] font-black uppercase text-[10px] tracking-[0.3em] rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3 relative z-10">
-                  Execute Dispatch <Zap className="w-4 h-4 fill-current" />
+               <button className="w-full mt-6 sm:mt-8 py-4 sm:py-5 bg-white hover:bg-emerald-50 text-[#0A2E24] font-black uppercase text-[9px] sm:text-[10px] tracking-widest sm:tracking-[0.3em] rounded-xl sm:rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3 relative z-10">
+                  Execute Dispatch <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
                </button>
             </motion.div>
 

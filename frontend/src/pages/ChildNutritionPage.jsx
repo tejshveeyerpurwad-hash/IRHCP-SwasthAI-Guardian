@@ -39,50 +39,47 @@ function NutritionForm({ onSave, onClose }) {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-50 flex items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <motion.div initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 20 }}
-        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xl p-8 relative">
-        <button onClick={onClose} className="absolute top-6 right-6 w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-amber-600 transition-all">
-          <X className="w-4 h-4" />
+      <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+        className="bg-white rounded-[1.5rem] sm:rounded-[2.5rem] shadow-2xl w-full max-w-xl p-6 sm:p-8 relative">
+        <button onClick={onClose} className="absolute top-5 right-5 w-9 h-9 sm:w-10 sm:h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-amber-600 transition-all">
+          <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </button>
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl"><Users className="w-6 h-6" /></div>
+        <div className="flex items-center gap-3 mb-5 sm:mb-6">
+          <div className="p-2.5 sm:p-3 bg-amber-50 text-amber-600 rounded-xl sm:rounded-2xl"><Users className="w-5 h-5 sm:w-6 sm:h-6" /></div>
           <div>
-            <h2 className="text-xl font-black text-slate-900">Check Child Nutrition</h2>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Enter the child's details to check for malnutrition</p>
+            <h2 className="text-lg sm:text-xl font-black text-slate-900">Check Nutrition</h2>
+            <p className="text-[8px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-widest">Enter details to check growth status</p>
           </div>
         </div>
         {error && (
-          <div className="mb-4 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3">
-            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-            <p className="text-xs font-bold text-rose-700">{error}</p>
+          <div className="mb-4 p-3.5 sm:p-4 bg-rose-50 border border-rose-200 rounded-xl sm:rounded-2xl flex items-start gap-3">
+            <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-600 shrink-0 mt-0.5" />
+            <p className="text-[11px] sm:text-xs font-bold text-rose-700">{error}</p>
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Child's Full Name</label>
-              <input className="input-field" placeholder="e.g. Raju Kumar" value={form.childName} onChange={e => set('childName', e.target.value)} required />
+              <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Child's Name</label>
+              <input className="input-field py-2.5 sm:py-3 text-sm" placeholder="e.g. Raju Kumar" value={form.childName} onChange={e => set('childName', e.target.value)} required />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Age (in Months)</label>
-              <input type="number" className="input-field" placeholder="0–60 months" value={form.ageMonths} onChange={e => set('ageMonths', e.target.value)} required />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Weight (in KG)</label>
-              <input type="number" step="0.1" className="input-field" placeholder="e.g. 12.5" value={form.weight} onChange={e => set('weight', e.target.value)} required />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Height (in CM)</label>
-              <input type="number" className="input-field" placeholder="e.g. 90" value={form.height} onChange={e => set('height', e.target.value)} required />
+              <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Age (Months)</label>
+              <input type="number" className="input-field py-2.5 sm:py-3 text-sm" placeholder="0–60" value={form.ageMonths} onChange={e => set('ageMonths', e.target.value)} required />
             </div>
           </div>
-          <div className="p-3 bg-blue-50 rounded-2xl border border-blue-100">
-            <p className="text-[10px] font-bold text-blue-500">ℹ️ Results help detect malnutrition early to ensure healthy growth.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="space-y-1">
+              <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Weight (KG)</label>
+              <input type="number" step="0.1" className="input-field py-2.5 sm:py-3 text-sm" placeholder="e.g. 12.5" value={form.weight} onChange={e => set('weight', e.target.value)} required />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Height (CM)</label>
+              <input type="number" className="input-field py-2.5 sm:py-3 text-sm" placeholder="e.g. 90" value={form.height} onChange={e => set('height', e.target.value)} required />
+            </div>
           </div>
-          <button type="submit" disabled={loading} className="w-full py-4 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-3">
-            {loading ? <><RefreshCw className="w-4 h-4 animate-spin" /> Checking Growth...</> : <><Scale className="w-4 h-4" /> Check Nutrition Status</>}
+          <button type="submit" disabled={loading} className="w-full py-3.5 sm:py-4 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-3">
+            {loading ? <><RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" /> Checking...</> : <><Scale className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Check Growth</>}
           </button>
         </form>
       </motion.div>
@@ -124,56 +121,58 @@ export default function ChildNutritionPage() {
       <main className="max-w-[1600px] mx-auto p-4 sm:p-8 lg:p-10 pt-28 overflow-y-auto">
 
         {/* HEADER */}
-        <motion.header initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-8 border-b border-slate-200">
-          <div>
-            <button onClick={() => navigate('/ngo')} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-amber-600 transition-colors mb-4">
-              <ArrowLeft className="w-3 h-3" /> Back to Dashboard
+        <motion.header initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} className="mb-4 sm:mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 sm:gap-6 pb-5 sm:pb-8 border-b border-slate-200">
+          <div className="space-y-1">
+            <button onClick={() => navigate('/ngo')} className="flex items-center gap-1 text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-amber-600 transition-colors mb-2">
+              <ArrowLeft className="w-2.5 h-2.5" /> Back
             </button>
-            <div className="flex items-center gap-2 text-amber-600 font-black uppercase tracking-[0.4em] text-[10px] mb-2">
-              <Users className="w-4 h-4" /> Child Nutrition Module
+            <div className="flex items-center gap-1.5 text-amber-600 font-black uppercase tracking-[0.2em] sm:tracking-[0.4em] text-[7px] sm:text-[10px] mb-0.5 sm:mb-2">
+              <Users className="w-3 h-3 sm:w-4 sm:h-4" /> Nutrition Module
             </div>
-            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-none">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-none">
               Child <span className="text-amber-500 italic">Nutrition.</span>
             </h1>
-            <p className="text-slate-400 font-bold mt-2">WHO Z-Score malnutrition assessment · Under-5 children</p>
+            <p className="text-slate-400 font-bold text-[10px] sm:text-sm mt-0.5 sm:mt-2">WHO Z-Score assessment · Under-5 children</p>
           </div>
-          <div className="flex gap-3">
-            <button onClick={fetchRecords} className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-amber-600 transition-all shadow-sm">
-              <RefreshCw className="w-5 h-5" />
+          <div className="flex gap-2 w-full sm:w-auto">
+            <button onClick={fetchRecords} className="flex-1 sm:flex-none p-2.5 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-amber-600 transition-all shadow-sm flex items-center justify-center">
+              <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
-            <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg shadow-amber-200">
-              <PlusCircle className="w-4 h-4" /> New Child
+            <button onClick={() => setShowForm(true)} className="flex-[4] sm:flex-none flex items-center justify-center gap-1.5 px-5 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black text-[10px] sm:text-sm uppercase tracking-widest transition-all shadow-lg shadow-amber-200">
+              <PlusCircle className="w-3 h-3 sm:w-4 sm:h-4" /> New Child
             </button>
           </div>
         </motion.header>
 
         {/* STATS */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
           {[
-            { label: 'Total Children', val: stats.total, cls: 'bg-slate-50 text-slate-600', icon: Users },
+            { label: 'Total', val: stats.total, cls: 'bg-slate-50 text-slate-600', icon: Users },
             { label: 'Severe', val: stats.severe, cls: 'bg-rose-50 text-rose-600', icon: AlertTriangle },
             { label: 'Moderate', val: stats.moderate, cls: 'bg-orange-50 text-orange-600', icon: TrendingDown },
             { label: 'Normal', val: stats.normal, cls: 'bg-emerald-50 text-emerald-600', icon: CheckCircle },
           ].map(s => {
             const Icon = s.icon;
             return (
-              <div key={s.label} className="bg-white rounded-[1.5rem] p-6 border border-slate-100 shadow-sm">
-                <div className={`p-2 rounded-xl w-fit mb-3 ${s.cls}`}><Icon className="w-4 h-4" /></div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{s.label}</p>
-                <p className="text-3xl font-black text-slate-900 tracking-tighter">{s.val}</p>
+              <div key={s.label} className="bg-white rounded-xl sm:rounded-[1.5rem] p-4 sm:p-6 border border-slate-100 shadow-sm">
+                <div className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl w-fit mb-2 sm:mb-3 ${s.cls}`}><Icon className="w-3 h-3 sm:w-4 sm:h-4" /></div>
+                <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5 sm:mb-1">{s.label}</p>
+                <p className="text-xl sm:text-3xl font-black text-slate-900 tracking-tighter">{s.val}</p>
               </div>
             );
           })}
         </motion.div>
 
         {/* FILTERS */}
-        <div className="flex gap-2 mb-6 flex-wrap">
-          {['All', 'Severe Acute Malnutrition', 'Moderate Acute Malnutrition', 'Mild Underweight', 'Normal'].map(f => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${filter === f ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-100' : 'bg-white text-slate-400 border-slate-200 hover:border-amber-200'}`}>
+        <div className="flex gap-1.5 sm:gap-2 mb-6 flex-wrap overflow-x-auto no-scrollbar">
+          {['All', 'Severe', 'Moderate', 'Normal'].map(f => {
+              const label = f === 'Severe' ? 'Severe Acute Malnutrition' : f === 'Moderate' ? 'Moderate Acute Malnutrition' : f;
+              return (
+            <button key={f} onClick={() => setFilter(label)}
+              className={`px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest border transition-all shrink-0 ${filter === label ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-100' : 'bg-white text-slate-400 border-slate-200 hover:border-amber-200'}`}>
               {f}
             </button>
-          ))}
+          )})}
         </div>
 
         {/* RECORDS */}

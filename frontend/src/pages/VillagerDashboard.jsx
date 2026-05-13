@@ -193,16 +193,16 @@ export default function VillagerDashboard() {
           <motion.header
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col md:flex-row justify-between items-end gap-6 pb-10 border-b border-slate-200 mb-12"
+            className="flex flex-col md:flex-row justify-between items-start md:items-end gap-5 sm:gap-6 pb-6 sm:pb-10 border-b border-slate-200 mb-8 sm:mb-12"
           >
-            <div className="space-y-2">
-              <div className="flex items-center gap-3 text-emerald-600 font-black uppercase tracking-[0.4em] text-[10px]">
-                <ActivityIcon className="w-4 h-4" /> SwasthAI Guardian
+            <div className="space-y-1.5 sm:space-y-2 text-left w-full">
+              <div className="flex items-center justify-start gap-2.5 sm:gap-3 text-emerald-600 font-black uppercase tracking-[0.3em] sm:tracking-[0.4em] text-[8px] sm:text-[10px]">
+                <ActivityIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> SwasthAI Guardian
               </div>
-              <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-none">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-none">
                 Namaste, <span className="text-emerald-600 italic">{user?.name || 'Friend'}</span> 🙏
               </h1>
-              <p className="text-slate-400 font-bold text-lg">
+              <p className="text-slate-400 font-bold text-xs sm:text-sm sm:text-lg">
                 {t.dashboardExt?.greeting || 'How are you feeling today?'}
               </p>
             </div>
@@ -226,17 +226,17 @@ export default function VillagerDashboard() {
             {/* AI DIAGNOSTIC TERMINAL */}
             <motion.div
               variants={itemVariants}
-              className="p-8 lg:p-10 bg-white border border-slate-100 rounded-[3rem] shadow-sm flex flex-col justify-between hover:shadow-xl hover:shadow-slate-200/50 transition-all md:col-span-2 xl:col-span-2"
+              className="p-5 sm:p-8 lg:p-10 bg-white border border-slate-100 rounded-[1.5rem] sm:rounded-[3rem] shadow-sm flex flex-col justify-between hover:shadow-xl hover:shadow-slate-200/50 transition-all md:col-span-2 xl:col-span-2"
             >
               <div>
-                <div className="flex items-center justify-between mb-10">
-                  <div className="flex items-center gap-5">
-                    <div className="w-14 h-14 bg-[#0A2E24] text-emerald-400 rounded-2xl flex items-center justify-center shadow-lg">
-                      <BrainCircuit className="w-7 h-7" />
+                <div className="flex items-center justify-between mb-6 sm:mb-10">
+                  <div className="flex items-center gap-3.5 sm:gap-5">
+                    <div className="w-11 h-11 sm:w-14 sm:h-14 bg-[#0A2E24] text-emerald-400 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg">
+                      <BrainCircuit className="w-5.5 h-5.5 sm:w-7 sm:h-7" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none mb-1">Bimari Jaanch / बीमारी जांच</h2>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Apne lakshan chunein — Check Your Symptoms</p>
+                      <h2 className="text-lg sm:text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none mb-1">Bimari Jaanch / बीमारी जांच</h2>
+                      <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Apne lakshan chunein — Check Your Symptoms</p>
                     </div>
                   </div>
                   <div className="hidden sm:flex gap-1.5">
@@ -245,14 +245,14 @@ export default function VillagerDashboard() {
                 </div>
 
                 <form onSubmit={checkSymptoms} className="space-y-8">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
                     {symptomList.map((symp) => (
-                      <label key={symp.id} className={`group flex items-center gap-4 p-5 rounded-[1.5rem] border-2 cursor-pointer transition-all duration-300 ${selectedSymptoms.includes(symp.id)
+                      <label key={symp.id} className={`group flex items-center gap-2.5 sm:gap-4 p-3.5 sm:p-5 rounded-xl sm:rounded-[1.5rem] border-2 cursor-pointer transition-all duration-300 ${selectedSymptoms.includes(symp.id)
                           ? 'bg-emerald-50 border-emerald-500 shadow-lg shadow-emerald-500/10'
                           : 'bg-slate-50 border-slate-100 hover:border-emerald-200 hover:bg-white'
                         }`}>
-                        <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${selectedSymptoms.includes(symp.id) ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300 group-hover:border-emerald-400'}`}>
-                          {selectedSymptoms.includes(symp.id) && <CheckCircle className="w-4 h-4 text-white" />}
+                        <div className={`w-4.5 h-4.5 sm:w-6 sm:h-6 rounded-lg border-2 flex items-center justify-center transition-all ${selectedSymptoms.includes(symp.id) ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300 group-hover:border-emerald-400'}`}>
+                          {selectedSymptoms.includes(symp.id) && <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />}
                         </div>
                         <input
                           type="checkbox"
@@ -260,7 +260,7 @@ export default function VillagerDashboard() {
                           checked={selectedSymptoms.includes(symp.id)}
                           onChange={() => handleSymptomChange(symp.id)}
                         />
-                        <span className={`text-sm font-black uppercase tracking-tight ${selectedSymptoms.includes(symp.id) ? 'text-emerald-900' : 'text-slate-500'}`}>
+                        <span className={`text-[11px] sm:text-sm font-black uppercase tracking-tight ${selectedSymptoms.includes(symp.id) ? 'text-emerald-900' : 'text-slate-500'}`}>
                           {symp.label}
                         </span>
                       </label>
@@ -270,15 +270,15 @@ export default function VillagerDashboard() {
                   <button
                     type="submit"
                     disabled={loading || selectedSymptoms.length === 0}
-                    className="w-full h-16 bg-slate-900 hover:bg-emerald-600 disabled:bg-slate-100 disabled:text-slate-300 text-white rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.4em] shadow-2xl transition-all flex items-center justify-center gap-4 group"
+                    className="w-full h-14 sm:h-16 bg-slate-900 hover:bg-emerald-600 disabled:bg-slate-100 disabled:text-slate-300 text-white rounded-xl sm:rounded-[1.5rem] font-black uppercase text-[9px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.4em] shadow-2xl transition-all flex items-center justify-center gap-3 sm:gap-4 group"
                   >
                     {loading ? (
-                      <><RefreshCw className="w-5 h-5 animate-spin" /> Jaanch ho rahi hai... / Checking...</>
+                      <><RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> Jaanch Karo... / Checking...</>
                     ) : (
                       <>
-                        <Zap className="w-5 h-5 fill-current" />
+                        <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
                         Jaanch Karo / Check Now
-                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                       </>
                     )}
                   </button>
@@ -299,7 +299,7 @@ export default function VillagerDashboard() {
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`mt-6 p-8 rounded-[2.5rem] border-2 flex flex-col gap-4 ${
+                      className={`mt-6 p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border-2 flex flex-col gap-4 ${
                         prediction.type === 'urgent'   ? 'bg-rose-50 border-rose-300' :
                         prediction.type === 'moderate' ? 'bg-amber-50 border-amber-300' :
                                                          'bg-emerald-50 border-emerald-200'
@@ -363,7 +363,7 @@ export default function VillagerDashboard() {
             {/* AI SKIN DIAGNOSTICS */}
             <motion.div
               variants={itemVariants}
-              className="p-8 lg:p-10 bg-[#0A2E24] rounded-[3rem] shadow-2xl flex flex-col justify-between hover:shadow-emerald-900/20 transition-all md:col-span-1 xl:col-span-1 text-white relative overflow-hidden group"
+              className="p-5 sm:p-8 lg:p-10 bg-[#0A2E24] rounded-[1.5rem] sm:rounded-[3rem] shadow-2xl flex flex-col justify-between hover:shadow-emerald-900/20 transition-all md:col-span-1 xl:col-span-1 text-white relative overflow-hidden group"
             >
               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/grid-me.png')] opacity-[0.05]" />
               <div className="absolute -right-20 -bottom-20 opacity-10 group-hover:scale-110 transition-transform duration-700 pointer-events-none">
@@ -371,13 +371,13 @@ export default function VillagerDashboard() {
               </div>
 
               <div className="relative z-10 w-full h-full flex flex-col">
-                <div className="flex items-center gap-5 mb-8">
-                  <div className="w-14 h-14 bg-white/10 backdrop-blur-xl text-emerald-400 rounded-2xl border border-white/10 flex items-center justify-center">
-                    <Camera className="w-7 h-7" />
+                <div className="flex items-center gap-4 sm:gap-5 mb-6 sm:mb-8">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/10 backdrop-blur-xl text-emerald-400 rounded-xl sm:rounded-2xl border border-white/10 flex items-center justify-center">
+                    <Camera className="w-6 h-6 sm:w-7 sm:h-7" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black text-white uppercase tracking-tighter leading-none mb-1">{t.dashboardExt?.skin_ai || 'Tvacha Jaanch / Skin Check'}</h2>
-                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{t.dashboardExt?.skin_ai_desc || 'Tasveer Se Bimari Pehchaanein'}</p>
+                    <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-tighter leading-none mb-1">{t.dashboardExt?.skin_ai || 'Tvacha Jaanch / Skin Check'}</h2>
+                    <p className="text-[9px] sm:text-[10px] font-black text-emerald-400 uppercase tracking-widest">{t.dashboardExt?.skin_ai_desc || 'Tasveer Se Bimari Pehchaanein'}</p>
                   </div>
                 </div>
 
@@ -409,7 +409,7 @@ export default function VillagerDashboard() {
             {/* STRATEGIC RESPONSE PROTOCOL (AMBULANCE) */}
             <motion.div
               variants={itemVariants}
-              className="p-8 lg:p-10 bg-white border border-slate-100 rounded-[3rem] shadow-sm flex flex-col justify-between hover:shadow-xl hover:shadow-slate-200/50 transition-all group"
+              className="p-5 sm:p-8 lg:p-10 bg-white border border-slate-100 rounded-[1.5rem] sm:rounded-[3rem] shadow-sm flex flex-col justify-between hover:shadow-xl hover:shadow-slate-200/50 transition-all group"
             >
               <div className="relative z-10 space-y-8">
                 <div className="flex items-center gap-5">
@@ -473,7 +473,7 @@ export default function VillagerDashboard() {
             {/* MATERNAL PULSE TERMINAL */}
             <motion.div
               variants={itemVariants}
-              className="p-8 lg:p-10 bg-[#0A2E24] rounded-[3rem] text-white shadow-2xl relative overflow-hidden group/maternal md:col-span-1 xl:col-span-2"
+              className="p-5 sm:p-8 lg:p-10 bg-[#0A2E24] rounded-[1.5rem] sm:rounded-[3rem] text-white shadow-2xl relative overflow-hidden group/maternal md:col-span-1 xl:col-span-2"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/40 to-transparent opacity-50" />
               <div className="absolute -right-20 -top-20 opacity-10 group-hover/maternal:rotate-12 transition-transform duration-1000">
@@ -510,36 +510,36 @@ export default function VillagerDashboard() {
               {/* Menstrual Health */}
               <div
                 onClick={() => navigate('/menstrual-health')}
-                className="p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group cursor-pointer"
+                className="p-6 sm:p-8 bg-white border border-slate-100 rounded-2xl sm:rounded-[2.5rem] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group cursor-pointer"
               >
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-pink-50 text-pink-600 rounded-xl flex items-center justify-center group-hover:bg-pink-600 group-hover:text-white transition-all">
-                    <Droplets className="w-6 h-6" />
+                <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-pink-50 text-pink-600 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:bg-pink-600 group-hover:text-white transition-all">
+                    <Droplets className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <h3 className="text-base font-black text-slate-900 uppercase tracking-tighter">{t.menstrual?.title || 'Menstrual Health'}</h3>
+                  <h3 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-tighter">{t.menstrual?.title || 'Menstrual Health'}</h3>
                 </div>
-                <p className="text-slate-400 font-bold text-xs leading-relaxed">{t.menstrual?.subtitle || 'Track your cycle, log symptoms, and get personalized health guidance in your language.'}</p>
-                <div className="mt-4 flex items-center gap-2 text-pink-600 text-[10px] font-black uppercase tracking-widest">
-                  {t.dashboardExt?.open || 'Open'} <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                <p className="text-slate-400 font-bold text-[11px] sm:text-xs leading-relaxed">{t.menstrual?.subtitle || 'Track your cycle and get health guidance in your language.'}</p>
+                <div className="mt-3 sm:mt-4 flex items-center gap-2 text-pink-600 text-[9px] sm:text-[10px] font-black uppercase tracking-widest">
+                  {t.dashboardExt?.open || 'Open'} <ArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
 
 
 
-              {/* Child Nutrition */}
+              {/* Symptom Checker */}
               <div
                 onClick={() => navigate('/symptoms')}
-                className="p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group cursor-pointer"
+                className="p-6 sm:p-8 bg-white border border-slate-100 rounded-2xl sm:rounded-[2.5rem] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group cursor-pointer"
               >
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-all">
-                    <Activity className="w-6 h-6" />
+                <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-50 text-amber-600 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-all">
+                    <Activity className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <h3 className="text-base font-black text-slate-900 uppercase tracking-tighter">{t.diseaseChecker?.title || 'Bimari Jaanch'}</h3>
+                  <h3 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-tighter">{t.diseaseChecker?.title || 'Bimari Jaanch'}</h3>
                 </div>
-                <p className="text-slate-400 font-bold text-xs leading-relaxed">Apne lakshan chunkar AI se poochhein — full page with voice input. / Full symptom check with AI + voice.</p>
-                <div className="mt-4 flex items-center gap-2 text-amber-600 text-[10px] font-black uppercase tracking-widest">
-                  {t.dashboardExt?.open || 'Open'} <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                <p className="text-slate-400 font-bold text-[11px] sm:text-xs leading-relaxed">Apne lakshan chunkar AI se poochhein — check symptoms with AI + voice.</p>
+                <div className="mt-3 sm:mt-4 flex items-center gap-2 text-amber-600 text-[9px] sm:text-[10px] font-black uppercase tracking-widest">
+                  {t.dashboardExt?.open || 'Open'} <ArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
 

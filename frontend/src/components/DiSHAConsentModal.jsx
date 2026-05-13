@@ -78,55 +78,55 @@ export default function DiSHAConsentModal({ onConsent }) {
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.88, y: 32 }}
         transition={{ type: 'spring', stiffness: 280, damping: 26 }}
-        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg p-8 my-6 relative"
+        className="bg-white rounded-[1.5rem] sm:rounded-[2.5rem] shadow-2xl w-full max-w-lg p-5 sm:p-8 my-4 relative"
       >
         {/* Header */}
-        <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mb-4 ring-4 ring-emerald-100">
-            <ShieldCheck className="w-8 h-8 text-emerald-600" />
+        <div className="flex flex-col items-center text-center mb-5 sm:mb-8">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-emerald-50 rounded-full flex items-center justify-center mb-3 sm:mb-4 ring-4 ring-emerald-100">
+            <ShieldCheck className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-600" />
           </div>
-          <div className="px-3 py-1 bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase tracking-[0.3em] rounded-full border border-emerald-100 mb-3">
+          <div className="px-3 py-1 bg-emerald-50 text-emerald-700 text-[8px] sm:text-[9px] font-black uppercase tracking-[0.3em] rounded-full border border-emerald-100 mb-2 sm:mb-3">
             DISHA 2023 · Data Privacy
           </div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tighter">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter">
             Aapka Data, Aapka Hak
           </h2>
-          <p className="text-slate-400 font-bold text-sm mt-1">
+          <p className="text-slate-400 font-bold text-xs sm:text-sm mt-0.5 sm:mt-1">
             Your Health Data, Your Rights
           </p>
         </div>
 
         {/* Consent Points */}
-        <div className="space-y-3 mb-7">
+        <div className="space-y-2 sm:space-y-3 mb-5 sm:mb-7">
           {CONSENT_POINTS.map(({ icon: Icon, color, title, body, hindi }) => (
-            <div key={title} className={`flex gap-4 p-4 rounded-2xl border border-slate-100`}>
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
-                <Icon className="w-4 h-4" />
+            <div key={title} className={`flex gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-100`}>
+              <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${color}`}>
+                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
               <div>
-                <p className="text-xs font-black text-slate-800 mb-0.5">{title}</p>
-                <p className="text-[11px] text-slate-500 font-medium leading-snug">{body}</p>
-                <p className="text-[10px] text-emerald-600 font-bold mt-1">{hindi}</p>
+                <p className="text-[11px] sm:text-xs font-black text-slate-800 mb-0.5">{title}</p>
+                <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium leading-snug">{body}</p>
+                <p className="text-[9px] sm:text-[10px] text-emerald-600 font-bold mt-1">{hindi}</p>
               </div>
             </div>
           ))}
         </div>
 
         {/* Checkbox */}
-        <label className={`flex items-start gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all mb-6 ${
+        <label className={`flex items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all mb-5 sm:mb-6 ${
           checked ? 'bg-emerald-50 border-emerald-400' : 'bg-slate-50 border-slate-200 hover:border-emerald-200'
         }`}>
-          <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+          <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-lg border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
             checked ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300'
           }`}>
-            {checked && <CheckCircle className="w-4 h-4 text-white" />}
+            {checked && <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />}
           </div>
           <input type="checkbox" className="hidden" checked={checked} onChange={e => setChecked(e.target.checked)} />
           <div>
-            <p className="text-xs font-black text-slate-800">
+            <p className="text-[11px] sm:text-xs font-black text-slate-800">
               Main samjhta/samajhti hoon aur consent deta/deti hoon
             </p>
-            <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+            <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium mt-0.5">
               I understand and consent to SwasthAI storing my health information
               as described above, in compliance with DISHA 2023 and the IT Act.
             </p>
