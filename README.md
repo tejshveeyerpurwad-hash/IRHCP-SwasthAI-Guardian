@@ -1,6 +1,11 @@
 # SwasthAI Guardian 🌿
 ### Integrated Rural Health Platform · AI-Powered · Offline-First · Built for Bharat
 
+---
+
+### 🌐 [Live Production Build][def]
+---
+
 > **SwasthAI Guardian** is a production-grade, multi-role healthcare platform designed for India's 600,000+ villages. It connects rural citizens, ASHA health workers, NGO field teams, and district hospital administrators through custom-trained machine learning, an offline-first architecture, full voice interaction, and native support for **6 Indian languages**.
 
 ---
@@ -419,3 +424,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 > *SwasthAI Guardian — Built for Bharat's villages, not just its cities.*  
 > *"We didn't build AI for doctors. We built it for the 600,000 villages that don't have one."*
+
+
+[def]: https://swasthai-guardian.onrender.com
