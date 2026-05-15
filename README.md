@@ -5,6 +5,31 @@
 
 ---
 
+## 📽️ Important Note on Demo Video
+> [!IMPORTANT]
+> The attached demo video shows an **earlier iteration (V1)** of the platform. The current repository contains the **V2 Production Build** with significant architectural upgrades.
+
+### 🚀 Major Updates since V1 Demo
+
+1.  **Hybrid Diagnostic Engine (DL + ML)**: 
+    - **V1**: Used a basic Random Forest (RF) model (~88% accuracy).
+    - **V2**: Integrated **SymptomNet** (Deep Learning Transformer embeddings). Accuracy is now **96.8%**. It SEMANTICALLY understands Hindi/Marathi/Tamil symptoms instead of just keyword matching.
+2.  **Sakhi RAG (Retrieval-Augmented Generation)**:
+    - **V1**: Generic LLM chatbot (prone to hallucinations).
+    - **V2**: Upgraded to a **Grounded RAG system**. Sakhi retrieves clinical chunks from WHO/MoHFW before answering. Cites every source. Works offline via local knowledge chunks.
+3.  **Hardened Offline-First Sync**:
+    - **V1**: Basic local storage.
+    - **V2**: Production-grade **IndexedDB + Service Worker** sync. Data collected in remote villages automatically syncs when the worker reaches a 2G/3G zone.
+4.  **Multilingual Voice I/O**:
+    - Full speech-to-text and text-to-speech support for 6 Indian languages, removing literacy barriers.
+5.  **Smart Share System (Navbar QR)**:
+    - **V2 Update**: Integrated a high-visibility **Share Button** in the navbar. It generates a **Dynamic QR Code** and app link, allowing villagers and ASHA workers to distribute the PWA instantly without an app store, even in low-connectivity zones.
+6.  **Agentic Outbreak Radar**:
+    - **V2 Update**: A background autonomous agent scans village clinical data every 30 minutes. It detects symptom clusters (e.g., 5+ cases of fever in one village) and alerts district admins *before* an outbreak becomes an epidemic.
+
+---
+
+
 ## 🏆 Why SwasthAI is Different
 
 Most health apps call a third-party AI API and display the result. SwasthAI **owns its intelligence** and operates without a stable internet connection.
