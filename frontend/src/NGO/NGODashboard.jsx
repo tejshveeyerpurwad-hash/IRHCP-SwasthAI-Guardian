@@ -123,15 +123,18 @@ export default function NGODashboard() {
 
   const [ambulances, setAmbulances]     = useState([]);
   const [pads, setPads]                 = useState([]);
+  const [outbreaks, setOutbreaks]       = useState([]);
   const [ambulanceErr, setAmbulanceErr] = useState(null);
   const [padErr, setPadErr]             = useState(null);
   const [loadingAmb, setLoadingAmb]     = useState(false);
   const [loadingPad, setLoadingPad]     = useState(false);
+  const [loadingOutbreaks, setLoadingOutbreaks] = useState(false);
 
   /* Fetch both on mount so overview counts are available */
   useEffect(() => {
     fetchAmbulances();
     fetchPads();
+    fetchOutbreaks();
   }, []);
 
   /* Also re-fetch when switching into a tab */
@@ -152,6 +155,22 @@ export default function NGODashboard() {
     const t = setInterval(fetchPads, 15000);
     return () => clearInterval(t);
   }, [activeTab]);
+
+  const fetchOutbreaks = async () => {
+    setLoadingOutbreaks(true);
+    try {
+      const res = await api.get('/admin/outbreaks');
+      const allOutbreaks = res.data.outbreaks || [];
+      
+      // PROFESSIONAL FILTER: Only show alerts relevant to this ASHA worker's village
+      const myVillageAlerts = allOutbreaks.filter(ob => ob.villageId === user?.villageId);
+      setOutbreaks(myVillageAlerts);
+    } catch (e) {
+      console.error('Failed to fetch outbreak alerts:', e);
+    } finally {
+      setLoadingOutbreaks(false);
+    }
+  };
 
   const fetchAmbulances = async () => {
     setLoadingAmb(true);
@@ -199,6 +218,40 @@ export default function NGODashboard() {
       <Navbar role="ngo" />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-24">
+
+        {/* 🚨 AI OUTBREAK ALERT BANNER 🚨 */}
+        <AnimatePresence>
+          {outbreaks.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mb-8 p-6 bg-red-600 rounded-[2rem] text-white shadow-2xl shadow-red-600/20 relative overflow-hidden group"
+            >
+              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:rotate-12 transition-transform duration-1000">
+                <AlertTriangle className="w-40 h-40" />
+              </div>
+              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-5">
+                  <div className="w-14 h-14 bg-white/20 backdrop-blur-xl rounded-2xl flex items-center justify-center animate-pulse">
+                    <Shield className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black uppercase tracking-tighter leading-none mb-1">Neural Outbreak Detected</h2>
+                    <p className="text-red-100 text-xs font-bold">The AI Agent has detected a disease cluster in your village area.</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {outbreaks.map((ob, idx) => (
+                    <div key={idx} className="bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2 rounded-xl">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-red-200">Alert #{idx+1}</p>
+                      <p className="text-sm font-black">{ob.classification}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Header */}
         <header className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">

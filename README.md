@@ -31,7 +31,7 @@
 5.  **Smart Share System (Navbar QR)**:
     - **V2 Update**: Integrated a high-visibility **Share Button** in the navbar. It generates a **Dynamic QR Code** and app link, allowing villagers and ASHA workers to distribute the PWA instantly without an app store, even in low-connectivity zones.
 6.  **Agentic Outbreak Radar**:
-    - **V2 Update**: A background autonomous agent scans village clinical data every 30 minutes. It detects symptom clusters (e.g., 5+ cases of fever in one village) and alerts district admins *before* an outbreak becomes an epidemic.
+    - **V2 Update**: A background autonomous agent scans village clinical data every 30 minutes. It detects symptom clusters (e.g., 5+ cases of fever in one village) and triggers **instant notifications for both District Admins and local ASHA workers** to stop outbreaks before they become epidemics.
 
 ---
 
@@ -186,7 +186,7 @@ python train_disease_model.py   # Generates disease_model.pkl + model_accuracy.t
 | **Maternal Health Tracker** | WHO-protocol pregnancy risk AI. Form collects **real vitals**: Age, Systolic BP, Diastolic BP, Blood Sugar (mmol/L), Body Temp, and Heart Rate. Live-color-coded sliders with danger thresholds. Pulsing red MoHFW banner fires instantly when BP ≥ 160/110. |
 | **Child Nutrition Monitor** | Weight/height/age inputs. WHO Z-score + BMI calculation. NHM protocol referral advice. SAM/MAM classification. |
 | **Village Health Dashboard** | Population stats, pregnancy cases, malnutrition counts, pad request alerts per village. |
-| **Outbreak Alerts** | AI-detected disease cluster notifications from the autonomous agent. |
+| **Outbreak Alerts** | **Village-Targeted warnings**—utilizes context-aware filtering to notify the local ASHA worker only if the AI agent detects a surge within their specific assigned village. |
 | **Ambulance Feed** | Live emergency request log for NGO area. |
 
 ### 🏛️ Admin Dashboard (District Hospital / Government)
@@ -194,7 +194,7 @@ python train_disease_model.py   # Generates disease_model.pkl + model_accuracy.t
 | Feature | Details |
 |---|---|
 | **District Analytics** | Real-time KPI dashboard across all registered villages with Recharts visualizations. |
-| **Outbreak Radar** | AI agent auto-classifies symptom clusters every 30 minutes. Auto-alert if 5+ similar cases from one village. Groq Llama-3.1 epidemiology classification. |
+| **Outbreak Radar** | Autonomous AI agent that auto-classifies symptom clusters every 30 minutes. **Sends village-specific alerts** if 5+ cases are detected in one node within 24 hours. Features Groq Llama-3.1 epidemiology reasoning. |
 | **CSV Export** | Download full district health data as a spreadsheet. |
 | **Ambulance Management** | Full emergency request log with timestamps and GPS coordinates. |
 | **Village Registry** | Add/manage village records, ASHA contacts, population data. |
