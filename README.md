@@ -426,6 +426,7 @@ Voice output via SpeechSynthesisUtterance (🔊 button per message)
 |---|---|
 | **Divyansh Gupta** | Team Leader · AI/ML · Backend Architecture · AI Service · Deployment |
 | **Tejshvee Yerpurwad** | Frontend · UX Design · Language Support · RAG Engine |
+| **Rishabh Agnihotri** | Presenter of SwasthAI Guardian |
 
 ---
 
