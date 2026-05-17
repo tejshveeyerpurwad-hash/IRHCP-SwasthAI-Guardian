@@ -277,5 +277,7 @@ Founder and Developer – IRHCP-SwasthAI-Guardian
 
 Focused on building AI-powered scalable healthcare innovations for real-world social impact, healthcare accessibility, and intelligent healthcare transformation.
 
-Divyansh Gupta 
+# Core Team
+
+Divyansh Gupta  
 Lead Developer and Technology Partner
