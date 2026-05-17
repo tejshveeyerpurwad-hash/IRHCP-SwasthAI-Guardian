@@ -381,7 +381,7 @@ function HealthAssistant() {
         />
         <button 
           type="button"
-          onClick={handleSend} 
+          onClick={() => handleSend()} 
           disabled={loading || !input.trim() || !isOnline}
           className="p-3 bg-slate-900 text-white rounded-xl hover:bg-rose-600 transition-all disabled:opacity-30 active:scale-95 shadow-sm"
         >

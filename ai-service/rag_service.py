@@ -265,9 +265,9 @@ def _get_kb_embeddings():
     return _kb_embeddings
 
 
-def _retrieve(query: str, top_k: int = 3) -> list[dict]:
+def _retrieve(query: str, top_k: int = 3) -> tuple[list[dict], float]:
     """
-    Cosine similarity retrieval — returns full structured knowledge objects.
+    Cosine similarity retrieval — returns full structured knowledge objects and the maximum similarity score.
     Each object has {text, source, urgency} for grounded citation display.
     Zero external dependency: uses numpy dot product on L2-normalized vectors.
     """
@@ -275,15 +275,16 @@ def _retrieve(query: str, top_k: int = 3) -> list[dict]:
     kb_embs = _get_kb_embeddings()
     query_emb = embedder.encode([query], normalize_embeddings=True)[0]
     scores = np.dot(kb_embs, query_emb)
+    max_score = float(np.max(scores)) if len(scores) > 0 else 0.0
     top_indices = np.argsort(scores)[-top_k:][::-1]
-    return [HEALTH_KNOWLEDGE[i] for i in top_indices]
+    return [HEALTH_KNOWLEDGE[i] for i in top_indices], max_score
 
 
 # ── RAG Chat Function ───────────────────────────────────────────────────────────
 def rag_chat(user_message: str, groq_api_key: str) -> dict:
     """
     Retrieves top-3 verified WHO/ASHA/MoHFW knowledge chunks via cosine similarity.
-    Injects them as grounded context into Groq prompt.
+    Injects them as grounded context into Groq prompt with strict clinical safety bounds.
 
     Returns:
         {
@@ -294,10 +295,31 @@ def rag_chat(user_message: str, groq_api_key: str) -> dict:
 
     Works in Hindi, Tamil, Marathi, Bengali, English (multilingual model).
     """
+    query_clean = user_message.strip().lower().rstrip("?").rstrip("!").rstrip(".")
+    
+    # 1. Check for quick-greetings (to respond instantly and warmly without hallucinating)
+    GREETINGS = ["hi", "hello", "namaste", "helo", "hey", "hola", "kaise ho", "good morning", "good evening", "namaskar", "pranam"]
+    is_greeting = any(g == query_clean or query_clean.startswith(g + " ") for g in GREETINGS) and len(user_message.split()) <= 4
+
+    # Dialect/Slang keyword bypass list to ensure local Hinglish terms always get in-scope routing
+    HEALTH_KEYWORDS = [
+        # Menstrual / Periods / Intimate health
+        "period", "menses", "mahvari", "mahavari", "maahvaari", "pad", "pads", "sanitary", "hygiene", "bleed", "bleeding", 
+        "mowho", "mahavari", "chhati", "pain", "dard", "discharge", "cycle", "white discharge", "periods", "pelvic",
+        # Pregnancy & Maternal
+        "pregnant", "pregnancy", "garbh", "garbhavastha", "delivery", "birth", "bacha", "bachhe", "bacche", "child", 
+        "nutrition", "breastfeed", "dudh", "doodh", "feed", "mother", "anc", "pcos", "weight", "acne",
+        # Symptoms & Clinical Terms
+        "fever", "bukhar", "vomit", "vomiting", "ultee", "diarrhea", "loose stool", "dast", "dehydration", "snake", 
+        "snakebite", "saanp", "heat", "heatstroke", "loo", "ambulance", "hospital", "phc", "doctor", "illness", 
+        "disease", "samasya", "bimar", "bimari", "vaccine", "dawa", "medicine", "cough", "tb", "tuberculosis", 
+        "malaria", "dengue", "typhoid", "hypertension", "bp", "pressure", "heart", "ors", "zinc"
+    ]
+    has_health_keyword = any(k in query_clean for k in HEALTH_KEYWORDS)
+
     try:
-        chunks = _retrieve(user_message, top_k=3)
+        chunks, max_score = _retrieve(user_message, top_k=3)
         context = "\n".join([f"- {c['text']}" for c in chunks])
-        # Collect unique sources and determine highest urgency
         sources  = list(dict.fromkeys(c["source"]  for c in chunks))
         urgencies = [c["urgency"] for c in chunks]
         priority_order = {"P1": 0, "P2": 1, "P3": 2, "P4": 3}
@@ -307,21 +329,53 @@ def rag_chat(user_message: str, groq_api_key: str) -> dict:
         context     = "No specific guidelines retrieved. Use general safe health advice."
         sources     = ["General health advice — consult a local doctor"]
         top_urgency = "P4"
+        max_score   = 0.5  # bypass out-of-scope fallback
+        has_health_keyword = True
 
-    system_prompt = f"""You are Sakhi, a trusted Women's & Family Health Assistant for rural India.
-You MUST base your answers ONLY on the verified health guidelines below.
-If the guidelines don't fully cover the question, acknowledge it and recommend consulting a doctor.
+    # 2. Select optimized System Prompt based on query context
+    if is_greeting:
+        system_prompt = """You are Sakhi, a warm, polite, and trusted Women's & Family Health Assistant for rural India.
+The user is saying hello. You MUST respond with a warm, welcoming, and culturally polite greeting in the exact SAME language or style they used (e.g. Hindi, English, Hinglish).
+Introduce yourself as Sakhi, and invite them to ask you any questions about pregnancy care, menstrual hygiene, periods, maternal health, or child nutrition.
+Keep your response extremely brief (2-3 sentences max).
+Do NOT mention any medical rules, symptoms, or guidelines in this greeting."""
+    
+    elif max_score < 0.28 and not has_health_keyword:
+        # Out-of-scope filter: completely unrelated topic (e.g. sports, movies, coding, politics)
+        system_prompt = """You are Sakhi, a warm, polite, and trusted Women's & Family Health Assistant for rural India.
+The user is asking about something completely OUTSIDE of women's/family health, maternal care, menstrual hygiene, or child health (such as playing sports, games, movies, general chatting, or politics).
+You MUST politely, warmly, and firmly state in their language that you are Sakhi, a dedicated assistant for women's and family health, and that you cannot answer queries outside of this scope (like sports or general entertainment).
+Encourage them to ask a health or wellness-related question instead.
+Keep your reply to exactly 2-3 sentences. Do not show any guideline citations or mention any diseases."""
+        
+        # Override metadata for out-of-scope response
+        sources = ["Sakhi Health Assistant — General Information"]
+        top_urgency = "P4"
+        
+    else:
+        # In-scope clinical query: inject guidelines and strict vocabulary safety gates
+        system_prompt = f"""You are Sakhi, a warm, trusted, and highly accurate Women's & Family Health Assistant for rural India.
+You MUST base your answers ONLY and DIRECTLY on the verified health guidelines below. Do NOT assume, extrapolate, or bring in any external medical information or cultural myths.
+If the guidelines don't fully cover the question, acknowledge it, stay safe, and warmly recommend consulting a doctor or your local ASHA worker.
 
 VERIFIED HEALTH GUIDELINES (WHO / ASHA / MoHFW):
 {context}
 
 RULES:
-- Reply in the SAME language as the user's message (Hindi, Tamil, Marathi, Bengali, English)
-- Never diagnose — always recommend a doctor for serious symptoms
-- Be warm, empathetic, non-judgmental — you are speaking to a rural woman
-- Keep responses to 3-5 sentences maximum
-- For P1 conditions (heavy bleeding, high fever, chest pain, convulsions) — URGENTLY advise immediate hospital visit
-- End your reply with: "📚 Source: [first source from the guidelines]" """
+- Reply in the SAME language or code-mixed style (like Hinglish) as the user's message (e.g. if they ask in Hinglish using 'mowho' or 'periods', answer in clear, polite Hinglish).
+- Never diagnose or prescribe medicines — always recommend consulting a doctor or ASHA worker for any health concern.
+- Be extremely warm, respectful, empathetic, and reassuring — you are a caring sister speaking to a rural woman.
+- Keep responses concise: strictly 2-3 sentences maximum. Stay focused and to the point.
+- For P1 conditions (heavy bleeding, high fever, chest pain, convulsions) — URGENTLY advise immediate hospital visit or calling 108.
+- End your reply with: "📚 Source: [first source from the guidelines]"
+
+CRITICAL MEDICAL & TRANSLATION SAFEGUARDS (MUST BE FOLLOWED 100%):
+1. Menstruation/Mowho/Mahvari/Periods: Explain it strictly, simply, and beautifully as a completely normal, healthy, and natural monthly biological process. Specifically, it is the monthly shedding of the uterine lining (garbhashay ki lining) resulting in vaginal blood flow (khoon ka bahaw).
+2. ABSOLUTE BAN ON "HAIR" HALUCINATION: Never under any circumstances translate period bleeding, blood, flow, or shedding as hair ("baal" or "balon" or "balon ka nikaas"). Doing so is medically incorrect and extremely dangerous. Period blood is normal body fluid/blood, NOT hair.
+3. ABSOLUTE BAN ON MYTHS: Do NOT mention any non-scientific cultural taboos, bad blood, toxins, impurities, bad spirits, or curses. Menstruation is healthy and pure.
+4. If you are unsure of any Hindi/Hinglish medical translation, use the phonetic English term directly in your Hinglish sentence (e.g., "periods", "bleeding", "uterus", "sanitary pad", "hygiene").
+5. Do NOT try to connect general wellness, physical activity, or sports queries to menstruation or chest pain unless the user explicitly mentions symptoms.
+6. Write fluent, natural Hinglish that is easy for a rural user to read, avoiding robotic, awkward, or direct literal word-by-word machine translations."""
 
     client = Groq(api_key=groq_api_key)
     try:
@@ -341,7 +395,7 @@ RULES:
         # This ensures Sakhi ALWAYS responds with grounded info, never fails silently
         print(f"[RAG] Groq API error (using KB fallback): {groq_error}")
         best_chunk = chunks[0] if chunks else None
-        if best_chunk:
+        if best_chunk and not is_greeting and max_score >= 0.28:
             answer = (
                 f"{best_chunk['text']}\n\n"
                 f"(Note: AI assistant temporarily unavailable. This guidance is from {best_chunk['source']}. "
