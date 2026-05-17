@@ -5,7 +5,8 @@ import {
   Package, MessageCircle, HeartPulse, BookOpen,
   Mic, AlertTriangle, CheckCircle, Send, X,
   Droplets, Zap, PhoneCall, MapPin, ShieldCheck,
-  Bot, User, Loader, WifiOff, BookMarked, CheckCircle2, Calendar
+  Bot, User, Loader, WifiOff, BookMarked, CheckCircle2, Calendar,
+  Navigation, AlertCircle
 } from 'lucide-react';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
@@ -17,11 +18,58 @@ function PadRequest() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [locStatus, setLocStatus] = useState('idle'); // idle | loading | success | error
+  const [gpsCoords, setGpsCoords] = useState(null);
+
+  // Nominatim Reverse Geocoding via secure, open openstreetmap client API
+  const reverseGeocode = async (lat, lng) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+        { headers: { 'Accept-Language': 'en', 'User-Agent': 'SwasthAIGuardian/1.0 (rural-health)' } }
+      );
+      const data = await res.json();
+      const addr = data.address || {};
+      const parts = [
+        addr.village || addr.hamlet || addr.suburb || addr.town || addr.city,
+        addr.county || addr.state_district,
+        addr.state,
+      ].filter(Boolean);
+      return parts.length ? parts.join(', ') : `${lat}, ${lng}`;
+    } catch {
+      return `${lat}, ${lng}`; // fallback to raw coordinates
+    }
+  };
+
+  const captureGPS = () => {
+    if (!navigator.geolocation) {
+      alert('GPS is not supported by this device. Please type your location manually.');
+      return;
+    }
+    setLocStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude.toFixed(5);
+        const lng = position.coords.longitude.toFixed(5);
+        const humanAddress = await reverseGeocode(lat, lng);
+        setGpsCoords({ lat, lng });
+        setVillage(humanAddress);
+        setLocStatus('success');
+      },
+      () => {
+        setLocStatus('error');
+        alert('Could not get GPS location. Please enable Location permissions and try again, or type your location manually.');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    // Format location to be strictly text-based as requested (no coordinates)
     try {
       await api.post('/villager/pad-request', { village });
       setSuccess(true);
@@ -40,7 +88,7 @@ function PadRequest() {
       </div>
       <h3 className="text-2xl font-black text-slate-900 mb-2">{t.menstrual?.request_sent || 'Request Sent!'}</h3>
       <p className="text-slate-500 font-medium mb-6 max-w-sm">{t.menstrual?.request_sent_desc || 'Your ASHA worker has been notified and will contact you shortly. Your request is completely private.'}</p>
-      <button onClick={() => { setSuccess(false); setVillage(''); }}
+      <button onClick={() => { setSuccess(false); setVillage(''); setGpsCoords(null); setLocStatus('idle'); }}
         className="px-6 py-3 bg-slate-100 text-slate-700 font-black text-xs uppercase tracking-widest rounded-xl hover:bg-rose-50 hover:text-rose-700 transition-colors">
         {t.menstrual?.send_another || 'Send Another Request'}
       </button>
@@ -48,22 +96,42 @@ function PadRequest() {
   );
 
   return (
-    <div className="max-w-md mx-auto">
+    <div className="max-w-md mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-8">
         <h2 className="text-2xl font-black text-slate-900 mb-2">{t.menstrual?.request_pads_title || 'Request Sanitary Pads'}</h2>
         <p className="text-slate-500 font-medium text-sm">{t.menstrual?.request_pads_desc || 'Your ASHA worker will deliver pads privately to your location. This request is completely confidential.'}</p>
       </div>
-      <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl mb-6 flex items-start gap-3">
+      <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl mb-6 flex items-start gap-3 animate-pulse">
         <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
         <p className="text-xs font-bold text-emerald-800">{t.menstrual?.private_note || '100% Private — Only your assigned ASHA worker can see this request. No one else will know.'}</p>
       </div>
       {error && <p className="mb-4 text-sm text-rose-600 font-bold bg-rose-50 p-3 rounded-xl">{error}</p>}
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* GPS Capture Button */}
+        <button
+          type="button"
+          onClick={captureGPS}
+          className={`w-full p-3.5 rounded-xl border-2 flex items-center justify-center gap-2.5 transition-all font-bold text-xs uppercase tracking-wider ${
+            locStatus === 'success'
+              ? 'bg-emerald-50 border-emerald-400 text-emerald-700'
+              : locStatus === 'loading'
+              ? 'bg-slate-50 border-slate-200 text-slate-400'
+              : locStatus === 'error'
+              ? 'bg-rose-50 border-rose-300 text-rose-600'
+              : 'bg-rose-50 border-rose-400 text-rose-700 hover:bg-rose-100'
+          }`}
+        >
+          {locStatus === 'idle'    && <><Navigation className="w-3.5 h-3.5" /> Locate Me via GPS</>}
+          {locStatus === 'loading' && <><Loader className="w-3.5 h-3.5 animate-spin" /> Detecting Location...</>}
+          {locStatus === 'success' && <><CheckCircle className="w-3.5 h-3.5" /> GPS Location Captured!</>}
+          {locStatus === 'error'   && <><AlertCircle className="w-3.5 h-3.5" /> GPS Failed — Retry</>}
+        </button>
+
         <div className="space-y-1.5">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.menstrual?.your_village || 'Your Village / Area'}</label>
           <div className="relative group">
             <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-rose-500 transition-colors" />
-            <input value={village} onChange={e => setVillage(e.target.value)} required
+            <input value={village} onChange={e => { setVillage(e.target.value); setGpsCoords(null); setLocStatus('idle'); }} required
               placeholder={t.menstrual?.village_placeholder || 'e.g. Rampur, Sector 4'}
               className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 text-sm focus:border-rose-400 focus:ring-4 focus:ring-rose-500/5 outline-none transition-all placeholder:text-slate-300" />
           </div>
@@ -113,7 +181,39 @@ function HealthAssistant() {
     const utterance = new SpeechSynthesisUtterance(text.slice(0, 300)); // Limit to 300 chars
     utterance.lang = lang;
     utterance.rate = 0.85; // Slightly slower for clarity
-    utterance.pitch = 1.1;
+    utterance.pitch = 1.1; // Slightly higher pitch for female voice simulation
+
+    // Dynamically select a premium female voice (Google Hindi Female, Swara, Zira, Heera, etc.)
+    const voices = window.speechSynthesis.getVoices();
+    const l = lang.toLowerCase().split('-')[0];
+    let femaleVoice = voices.find(v => 
+      v.lang.toLowerCase().replace('_', '-').startsWith(l) && 
+      (v.name.toLowerCase().includes('female') || 
+       v.name.toLowerCase().includes('swara') || 
+       v.name.toLowerCase().includes('heera') || 
+       v.name.toLowerCase().includes('zira') || 
+       v.name.toLowerCase().includes('kalpana') || 
+       v.name.toLowerCase().includes('google') ||
+       v.name.toLowerCase().includes('microsoft') && !v.name.toLowerCase().includes('david') && !v.name.toLowerCase().includes('ravi') && !v.name.toLowerCase().includes('karan'))
+    );
+
+    if (!femaleVoice) {
+      femaleVoice = voices.find(v => v.lang.toLowerCase().replace('_', '-').startsWith(l));
+    }
+
+    if (!femaleVoice) {
+      femaleVoice = voices.find(v => 
+        v.name.toLowerCase().includes('female') || 
+        v.name.toLowerCase().includes('zira') || 
+        v.name.toLowerCase().includes('hazel') || 
+        v.name.toLowerCase().includes('samantha')
+      );
+    }
+
+    if (femaleVoice) {
+      utterance.voice = femaleVoice;
+    }
+
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);

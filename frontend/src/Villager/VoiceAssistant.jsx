@@ -72,6 +72,40 @@ export default function VoiceAssistant({ onResult }) {
     const msgFn = SPEAK_MSG[speechLang] || SPEAK_MSG['en-IN'];
     const utterance = new SpeechSynthesisUtterance(msgFn(prediction));
     utterance.lang = speechLang;
+    utterance.rate = 0.85; // Slightly slower for clarity
+    utterance.pitch = 1.1; // Slightly higher pitch for female voice simulation
+
+    // Dynamically select a premium female voice (Google Hindi Female, Swara, Zira, Heera, etc.)
+    const voices = window.speechSynthesis.getVoices();
+    const l = speechLang.toLowerCase().split('-')[0];
+    let femaleVoice = voices.find(v => 
+      v.lang.toLowerCase().replace('_', '-').startsWith(l) && 
+      (v.name.toLowerCase().includes('female') || 
+       v.name.toLowerCase().includes('swara') || 
+       v.name.toLowerCase().includes('heera') || 
+       v.name.toLowerCase().includes('zira') || 
+       v.name.toLowerCase().includes('kalpana') || 
+       v.name.toLowerCase().includes('google') ||
+       v.name.toLowerCase().includes('microsoft') && !v.name.toLowerCase().includes('david') && !v.name.toLowerCase().includes('ravi') && !v.name.toLowerCase().includes('karan'))
+    );
+
+    if (!femaleVoice) {
+      femaleVoice = voices.find(v => v.lang.toLowerCase().replace('_', '-').startsWith(l));
+    }
+
+    if (!femaleVoice) {
+      femaleVoice = voices.find(v => 
+        v.name.toLowerCase().includes('female') || 
+        v.name.toLowerCase().includes('zira') || 
+        v.name.toLowerCase().includes('hazel') || 
+        v.name.toLowerCase().includes('samantha')
+      );
+    }
+
+    if (femaleVoice) {
+      utterance.voice = femaleVoice;
+    }
+
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     window.speechSynthesis.speak(utterance);

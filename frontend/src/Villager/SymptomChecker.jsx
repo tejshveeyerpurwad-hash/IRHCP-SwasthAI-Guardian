@@ -181,8 +181,42 @@ export default function SymptomChecker() {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang === 'hi' ? 'hi-IN' : lang === 'mr' ? 'mr-IN' : lang === 'ta' ? 'ta-IN' : lang === 'bn' ? 'bn-IN' : 'en-IN';
+    const speechLang = lang === 'hi' ? 'hi-IN' : lang === 'mr' ? 'mr-IN' : lang === 'ta' ? 'ta-IN' : lang === 'bn' ? 'bn-IN' : 'en-IN';
+    utterance.lang = speechLang;
     utterance.rate = 0.85;
+    utterance.pitch = 1.1; // Slightly higher pitch for female voice simulation
+
+    // Dynamically select a premium female voice (Google Hindi Female, Swara, Zira, Heera, etc.)
+    const voices = window.speechSynthesis.getVoices();
+    const l = speechLang.toLowerCase().split('-')[0];
+    let femaleVoice = voices.find(v => 
+      v.lang.toLowerCase().replace('_', '-').startsWith(l) && 
+      (v.name.toLowerCase().includes('female') || 
+       v.name.toLowerCase().includes('swara') || 
+       v.name.toLowerCase().includes('heera') || 
+       v.name.toLowerCase().includes('zira') || 
+       v.name.toLowerCase().includes('kalpana') || 
+       v.name.toLowerCase().includes('google') ||
+       v.name.toLowerCase().includes('microsoft') && !v.name.toLowerCase().includes('david') && !v.name.toLowerCase().includes('ravi') && !v.name.toLowerCase().includes('karan'))
+    );
+
+    if (!femaleVoice) {
+      femaleVoice = voices.find(v => v.lang.toLowerCase().replace('_', '-').startsWith(l));
+    }
+
+    if (!femaleVoice) {
+      femaleVoice = voices.find(v => 
+        v.name.toLowerCase().includes('female') || 
+        v.name.toLowerCase().includes('zira') || 
+        v.name.toLowerCase().includes('hazel') || 
+        v.name.toLowerCase().includes('samantha')
+      );
+    }
+
+    if (femaleVoice) {
+      utterance.voice = femaleVoice;
+    }
+
     window.speechSynthesis.speak(utterance);
   };
 
