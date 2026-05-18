@@ -68,19 +68,48 @@ Most health apps call a third-party AI API and display the result. SwasthAI **ow
 
 ## 🗺️ System Architecture
 
+```text
+┌─────────────────────────┐     ┌─────────────────────────┐     ┌─────────────────────────┐
+│  React + Vite Frontend  │────▶│  Node.js + Express API  │────▶│ FastAPI AI Microservice │
+│  Port 5173 (PWA)        │     │  Port 5000              │     │ Port 8000               │
+│                         │     │                         │     │                         │
+│  ● Luminous Emerald UI  │     │  ● JWT Auth + bcryptjs  │     │  ● Hybrid Neural Engine │
+│  ● 6-language i18n      │     │  ● Rate Limiting        │     │  ● Transformer Model    │
+│  ● Edge AI Skin Scan    │     │  ● Cluster Load Balance │     │  ● RF Safety Fallback   │
+│  ● Voice In + Out       │     │  ● SQLite (offline)     │     │  ● Outbreak Agent       │
+│  ● PWA installable      │     │  ● CORS Whitelist       │     │  ● Safety Guardrails    │
+│  ● DISHA Consent Gate   │     │  ● 8s AI timeouts       │     │  ● Sakhi RAG (38 chks)  │
+└─────────────────────────┘     └─────────────────────────┘     └─────────────────────────┘
 ```
-┌─────────────────────────┐     ┌──────────────────────────┐     ┌──────────────────────────┐
-│   React + Vite Frontend │────▶│  Node.js + Express API   │────▶│  FastAPI AI Microservice │
-│   Port 5173 (PWA)       │     │  Port 5000               │     │  Port 8000               │
-│                         │     │                          │     │                          │
-│  ● Luminous Emerald UI  │     │  ● JWT Auth + bcryptjs   │     │  ● **Hybrid Neural Engine** |
-│  ● 6-language i18n      │     │  ● Rate Limiting         │     │  ● **Transformer Model**   |
-│  ● Edge AI Skin Scan    │     │  ● Cluster Load Balance  │     │  ● **RF Safety Fallback**  |
-│  ● Voice In + Out       │     │  ● SQLite (offline safe) │     │  ● Outbreak Agent        |
-│  ● PWA installable      │     │  ● CORS Whitelist        │     │  ● **Safety Guardrails**   |
-│  ● DISHA Consent Gate   │     │  ● 8s AI timeouts        │     │  ● Sakhi RAG (38 chunks) |
-└─────────────────────────┘     └──────────────────────────┘     └──────────────────────────┘
+
+```mermaid
+graph LR
+    subgraph Frontend ["🖥️ React + Vite Frontend (PWA)"]
+        A["● Luminous Emerald UI<br>● 6-Language i18n<br>● Edge AI Skin Scan<br>● Voice In & Out<br>● PWA Installable<br>● DISHA Consent Gate"]
+    end
+
+    subgraph Backend ["⚙️ Node.js + Express API (Port 5000)"]
+        B["● JWT Auth + bcryptjs<br>● Rate Limiting<br>● Cluster Load Balance<br>● SQLite (Offline Safe)<br>● CORS Whitelist<br>● 8s AI Timeouts"]
+    end
+
+    subgraph AIService ["🧠 FastAPI AI Microservice (Port 8000)"]
+        C["● Hybrid Neural Engine<br>● Transformer Model<br>● RF Safety Fallback<br>● Outbreak Agent<br>● Safety Guardrails<br>● Sakhi RAG (38 chunks)"]
+    end
+
+    Frontend -->|HTTPS API Requests| Backend
+    Backend -->|JSON RPC Callbacks| AIService
+
+    classDef front fill:#e6fcf5,stroke:#0ca678,stroke-width:2px,color:#095c3e,font-weight:bold;
+    classDef back fill:#f1f3f5,stroke:#495057,stroke-width:2px,color:#212529,font-weight:bold;
+    classDef ai fill:#fff0f6,stroke:#d6336c,stroke-width:2px,color:#a61e4d,font-weight:bold;
+    classDef sub fill:#f8f9fa,stroke:#dee2e6,stroke-width:1px,stroke-dasharray: 5 5;
+
+    class A front;
+    class B back;
+    class C ai;
+    class Frontend,Backend,AIService sub;
 ```
+
 
 ---
 
