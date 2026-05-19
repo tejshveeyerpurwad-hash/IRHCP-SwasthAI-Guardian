@@ -33,9 +33,9 @@
 6.  **Agentic Outbreak Radar**:
     - **V2 Update**: A background autonomous agent scans village clinical data every 30 minutes. It detects symptom clusters (e.g., 5+ cases of fever in one village) and triggers **instant notifications for both District Admins and local ASHA workers** to stop outbreaks before they become epidemics.
 7.  **Edge Image Compression (V2.1)**:
-    - **V2.1 Update**: Integrated browser-side image compression on skin photo uploads. Automatically reduces high-res images (5MB+) down to `< 200KB` on-the-fly before upload, ensuring reliable transmission over spotty 2G/3G connections.
+    - **V2 Update**: Integrated browser-side image compression on skin photo uploads. Automatically reduces high-res images (5MB+) down to `< 200KB` on-the-fly before upload, ensuring reliable transmission over spotty 2G/3G connections.
 8.  **API Resilience via Exponential Backoff (V2.1)**:
-    - **V2.1 Update**: Wrapped the primary Groq LLM API client in a 3-attempt exponential backoff and retry loop (1s, 2s, 4s delays) to mitigate network jitter. Added an automatic failover to the local WHO/ASHA knowledge base to prevent silent clinical failures during API blackouts.
+    - **V2 Update**: Wrapped the primary Groq LLM API client in a 3-attempt exponential backoff and retry loop (1s, 2s, 4s delays) to mitigate network jitter. Added an automatic failover to the local WHO/ASHA knowledge base to prevent silent clinical failures during API blackouts.
 
 ---
 
