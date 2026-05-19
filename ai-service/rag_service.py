@@ -11,6 +11,7 @@ IEEE YESIST12 IEngage / Tristha Track:
 """
 import os
 import numpy as np
+import time
 from groq import Groq
 
 # ── Structured Knowledge Base ───────────────────────────────────────────────────
@@ -378,35 +379,47 @@ CRITICAL MEDICAL & TRANSLATION SAFEGUARDS (MUST BE FOLLOWED 100%):
 6. Write fluent, natural Hinglish that is easy for a rural user to read, avoiding robotic, awkward, or direct literal word-by-word machine translations."""
 
     client = Groq(api_key=groq_api_key)
-    try:
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user",   "content": user_message},
-            ],
-            temperature=0.35,
-            max_tokens=400,
-            timeout=10,
-        )
-        answer = response.choices[0].message.content
-    except Exception as groq_error:
-        # Groq unavailable (rate limit, timeout, API down) — use top KB chunk as fallback answer
-        # This ensures Sakhi ALWAYS responds with grounded info, never fails silently
-        print(f"[RAG] Groq API error (using KB fallback): {groq_error}")
-        best_chunk = chunks[0] if chunks else None
-        if best_chunk and not is_greeting and max_score >= 0.28:
-            answer = (
-                f"{best_chunk['text']}\n\n"
-                f"(Note: AI assistant temporarily unavailable. This guidance is from {best_chunk['source']}. "
-                f"Please consult a doctor for personal advice.)"
+    max_retries = 3
+    base_wait = 1
+    answer = None
+
+    for attempt in range(max_retries):
+        try:
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user",   "content": user_message},
+                ],
+                temperature=0.35,
+                max_tokens=400,
+                timeout=10,
             )
-        else:
-            answer = (
-                "I'm having trouble connecting right now. "
-                "For any health emergency, please call 108 (free ambulance) or visit your nearest PHC. "
-                "अभी कनेक्शन में समस्या है। किसी भी आपातकाल के लिए 108 पर कॉल करें।"
-            )
+            answer = response.choices[0].message.content
+            break  # Success, exit the retry loop
+        except Exception as groq_error:
+            print(f"[RAG] Groq API error on attempt {attempt + 1}: {groq_error}")
+            if attempt < max_retries - 1:
+                wait_time = base_wait * (2 ** attempt)  # Exponential backoff: 1s, 2s, 4s
+                print(f"[RAG] Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+            else:
+                # Groq completely unavailable after retries (rate limit, timeout, API down)
+                # Use top KB chunk as fallback answer to ensure Sakhi NEVER fails silently
+                print("[RAG] All retries exhausted. Using KB fallback.")
+                best_chunk = chunks[0] if chunks else None
+                if best_chunk and not is_greeting and max_score >= 0.28:
+                    answer = (
+                        f"{best_chunk['text']}\n\n"
+                        f"(Note: AI assistant temporarily unavailable. This guidance is from {best_chunk['source']}. "
+                        f"Please consult a doctor for personal advice.)"
+                    )
+                else:
+                    answer = (
+                        "I'm having trouble connecting right now. "
+                        "For any health emergency, please call 108 (free ambulance) or visit your nearest PHC. "
+                        "अभी कनेक्शन में समस्या है। किसी भी आपातकाल के लिए 108 पर कॉल करें।"
+                    )
 
     return {
         "answer":  answer,

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import { Camera, ShieldCheck, ChevronRight, RotateCcw, HeartPulse, Activity } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-
+import imageCompression from 'browser-image-compression';
 // ── PHOTO ANALYSIS: Skin-aware pixel processing ──────────────────────────────
 // Only analyzes pixels that look like skin (any skin tone — fair to dark).
 // Ignores backgrounds (green, white, blue, walls, clothes, etc.)
@@ -192,14 +192,32 @@ export default function SkinDiseaseCheckerPage() {
   const [showCamera, setShowCamera] = useState(false);
   const [cameraError, setCameraError] = useState(false);
 
-  const handleImageUpload = (file) => {
+  const handleImageUpload = async (file) => {
     if (file && file.type.startsWith('image/')) {
-      setSkinImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setSkinPreview(reader.result);
-      reader.readAsDataURL(file);
-      setPhotoData(null);
-      setPhotoWarning(false);
+      try {
+        // Compress image for fast upload on 2G networks (<200KB)
+        const options = {
+          maxSizeMB: 0.2,
+          maxWidthOrHeight: 1280,
+          useWebWorker: true,
+        };
+        const compressedFile = await imageCompression(file, options);
+        
+        setSkinImage(compressedFile);
+        const reader = new FileReader();
+        reader.onloadend = () => setSkinPreview(reader.result);
+        reader.readAsDataURL(compressedFile);
+        
+        setPhotoData(null);
+        setPhotoWarning(false);
+      } catch (error) {
+        console.error('Image compression failed:', error);
+        // Fallback to original file
+        setSkinImage(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setSkinPreview(reader.result);
+        reader.readAsDataURL(file);
+      }
     }
   };
 
