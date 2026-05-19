@@ -32,6 +32,10 @@
     - **V2 Update**: Integrated a high-visibility **Share Button** in the navbar. It generates a **Dynamic QR Code** and app link, allowing villagers and ASHA workers to distribute the PWA instantly without an app store, even in low-connectivity zones.
 6.  **Agentic Outbreak Radar**:
     - **V2 Update**: A background autonomous agent scans village clinical data every 30 minutes. It detects symptom clusters (e.g., 5+ cases of fever in one village) and triggers **instant notifications for both District Admins and local ASHA workers** to stop outbreaks before they become epidemics.
+7.  **Edge Image Compression (V2.1)**:
+    - **V2.1 Update**: Integrated browser-side image compression on skin photo uploads. Automatically reduces high-res images (5MB+) down to `< 200KB` on-the-fly before upload, ensuring reliable transmission over spotty 2G/3G connections.
+8.  **API Resilience via Exponential Backoff (V2.1)**:
+    - **V2.1 Update**: Wrapped the primary Groq LLM API client in a 3-attempt exponential backoff and retry loop (1s, 2s, 4s delays) to mitigate network jitter. Added an automatic failover to the local WHO/ASHA knowledge base to prevent silent clinical failures during API blackouts.
 
 ---
 
@@ -252,6 +256,7 @@ Designed to work on ₹3,000–₹7,000 Android phones on 2G/3G:
 | **Battery saving** | `@media (prefers-reduced-motion: reduce)` kills all animations |
 | **WCAG tap targets** | `.tap-target` utility — minimum 44×44px for fat-finger usability |
 | **2G timeout** | 8-second axios timeout — never hangs forever |
+| **Edge Compression** | On-device `browser-image-compression` (5MB+ to <200KB) to prevent 2G packet loss |
 | **Offline toast** | YouTube-style banner when data cuts mid-session |
 | **PWA caching** | Core assets cached on install — loads without internet |
 
@@ -439,9 +444,10 @@ Top-3 chunks selected from:
    • UNICEF Maternal Nutrition Framework
    • NHM India Menstrual Hygiene Scheme
        ↓
-Groq Llama-3.1-8b-instant (10s timeout)
+Groq Llama-3.3-70b-versatile
    ├── Success → Structured answer with citation + urgency badge
-   └── Failure → Top-1 KB chunk served directly (never silent failure)
+   └── Failure (Jitter) → Exponential retry (3 attempts: 1s, 2s, 4s backoff)
+   └── Full Outage → Top-1 KB chunk served directly as fallback (never silent failure)
        ↓
 Response includes: answer · sources[] · urgency (P1/P2/P3/P4)
 Voice output via SpeechSynthesisUtterance (🔊 button per message)
