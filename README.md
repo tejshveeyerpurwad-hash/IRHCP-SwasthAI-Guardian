@@ -449,16 +449,6 @@ Voice output via SpeechSynthesisUtterance (🔊 button per message)
 
 ---
 
-## 👥 Development Team
-
-| Name | Role |
-|---|---|
-| **Divyansh Gupta** | Team Leader · AI/ML · Backend Architecture · AI Service · Deployment |
-| **Tejshvee Yerpurwad** | Frontend · UX Design · Language Support · RAG Engine |
-| **Rishabh Agnihotri** | Presenter of SwasthAI Guardian |
-
----
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
