@@ -32,18 +32,18 @@ export default function VillagerDashboard() {
       </div>
 
       <main className="max-w-5xl mx-auto px-6 pt-12 md:pt-20 pb-32">
-        
+
         {/* WELCOME HEADER */}
         <header className="mb-10 flex items-end justify-between animate-in fade-in slide-in-from-bottom-4 duration-700">
           <div>
             <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">{t.swasthai || 'SwasthAI'} {t.roles?.villager || 'Citizen'}</p>
             <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight">
-              Namaste, <span className="text-emerald-600">{userName}</span> 👋
+              Namaste, <span className="text-emerald-600">{userName}</span> 🙏
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setIsOffline(!isOffline)} 
+            <button
+              onClick={() => setIsOffline(!isOffline)}
               className={`p-3 rounded-full transition-all border ${isOffline ? 'bg-slate-800 border-slate-700 text-emerald-400' : 'bg-white border-slate-200 text-slate-400 hover:text-emerald-600 hover:border-emerald-200'}`}
               title={isOffline ? 'Go Online' : 'Go Offline'}
             >
@@ -58,9 +58,9 @@ export default function VillagerDashboard() {
 
         {/* TOP PRIORITY: EMERGENCY & VOICE */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-6">
-          
+
           {/* EMERGENCY AMBULANCE */}
-          <Link 
+          <Link
             to="/ambulance"
             className="md:col-span-5 p-8 bg-white rounded-[2rem] border border-rose-100 shadow-sm hover:shadow-xl hover:shadow-rose-100 transition-all flex flex-col justify-between group overflow-hidden relative active:scale-[0.98]"
           >
@@ -78,7 +78,7 @@ export default function VillagerDashboard() {
           </Link>
 
           {/* SYMPTOM CHECKER / VOICE ASSISTANT */}
-          <Link 
+          <Link
             to="/symptoms"
             className="md:col-span-7 p-8 bg-emerald-600 text-white rounded-[2rem] shadow-lg shadow-emerald-600/20 hover:shadow-2xl hover:shadow-emerald-600/30 transition-all flex flex-col justify-between group overflow-hidden relative active:scale-[0.98]"
           >
@@ -106,7 +106,7 @@ export default function VillagerDashboard() {
 
         {/* SECONDARY FEATURES GRID */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
+
           {/* Skin Scanner */}
           <Link to="/skin-disease" className="p-6 bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-lg transition-all group active:scale-95">
             <div className="w-12 h-12 bg-slate-50 text-emerald-600 rounded-xl flex items-center justify-center mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-sm">
@@ -133,7 +133,7 @@ export default function VillagerDashboard() {
             <h3 className="text-lg font-black text-slate-900 tracking-tight mb-2">{t.services?.maternal || 'Maternal Health'}</h3>
             <p className="text-slate-500 text-xs font-medium leading-relaxed">{t.services?.maternal_desc || 'Track cycles, pregnancy, and specialized care.'}</p>
           </Link>
-          
+
         </div>
 
 

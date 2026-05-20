@@ -1,6 +1,6 @@
 # SwasthAI Guardian: Integrated Rural Health Platform
 
-> **Note to Judges:** Our attached demo video showcases the V1 foundation of our platform. Below is the documentation for our **V2 Production Upgrade**, which introduces Grounded RAG, Offline Login,  Local Offline Maternal/Child Sync, and an Autonomous Outbreak Agent.
+> **Note to Judges:** Our attached demo video showcases the V1 foundation of our platform. Below is the documentation for our **V2 Production Upgrade**, which introduces Grounded RAG, Offline Login,  Local Offline Maternal/Child Sync, and an Autonomous Outbreak Agent. check GitHub Readme.md for v1 and v2 differences
 
 A production-grade, AI-powered healthcare platform built for rural India. Connecting remote villagers, ASHA health workers, and district hospitals through real machine learning, offline-first architecture, and regional language support.
 
@@ -55,7 +55,7 @@ SwasthAI Guardian is built on a **true 3-service Microservices Architecture**. E
 
 ## Core Features
 
-### 👨🌾 Villager Features
+### 👨 Villager Features
 
 *   **AI Symptom Checker** with multilingual voice input and 96.8% diagnostic accuracy (SymptomNet/RF hybrid).
 *   **Clinical Input Filters** under-the-hood to reject gibberish, spam, and non-health topics.
