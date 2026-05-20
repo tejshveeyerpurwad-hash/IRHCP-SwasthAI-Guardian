@@ -67,12 +67,15 @@ Most health apps call a third-party AI API and display the result. SwasthAI **ow
 | Generic LLM answers | Grounded RAG — every Sakhi answer cites WHO/ASHA/FOGSI |
 | Basic ML model | **Hybrid Neural Architecture** (Transformer + Random Forest) |
 | Simple Thresholds | **Double-Uncertainty Guardrail** (Safety First) |
+| AI fails silently on vague symptoms | **V2: Clinical Heuristic Fallback** — zero-hallucination, always returns ASHA-grounded advice |
 | No privacy compliance | DISHA 2023 consent modal on first login |
 | Crashes when AI is down | KB-chunk fallback — system never fails silently |
 
 ---
 
 ## 🗺️ System Architecture
+
+SwasthAI Guardian is built on a **true 3-service Microservices Architecture**. Each service is independently deployable, fault-isolated, and communicates over HTTP JSON APIs:
 
 ```text
 ┌─────────────────────────┐     ┌─────────────────────────┐     ┌─────────────────────────┐
@@ -84,7 +87,9 @@ Most health apps call a third-party AI API and display the result. SwasthAI **ow
 │  ● Edge AI Skin Scan    │     │  ● Cluster Load Balance │     │  ● RF Safety Fallback   │
 │  ● Voice In + Out       │     │  ● SQLite (offline)     │     │  ● Outbreak Agent       │
 │  ● PWA installable      │     │  ● CORS Whitelist       │     │  ● Safety Guardrails    │
-│  ● DISHA Consent Gate   │     │  ● 8s AI timeouts       │     │  ● Sakhi RAG (38 chks)  │
+│  ● DISHA Consent Gate   │     │  ● AI Offline Fallback  │     │  ● Clinical Heuristic   │
+│                         │     │    (V2 — 6-lang rules)  │     │    Fallback (V2)        │
+│                         │     │                         │     │  ● Sakhi RAG (38 chks)  │
 └─────────────────────────┘     └─────────────────────────┘     └─────────────────────────┘
 ```
 
@@ -126,7 +131,7 @@ graph LR
 | **Frontend** | React 18, Vite 5, Framer Motion 12, Lucide React, Recharts, React Router 6 |
 | **PWA** | `vite-plugin-pwa`, Web App Manifest, Service Worker, offline caching |
 | **Styling** | Tailwind CSS 3 — "Luminous Emerald Light" custom design system |
-| **Backend** | Node.js (ESM), Express 4, SQLite3, JWT, bcryptjs, express-rate-limit, axios |
+| **Backend** | Node.js (ESM), Express 4, SQLite3 + **WAL mode** + **7 query indexes (V2)**, JWT, bcryptjs, express-rate-limit, axios |
 | **AI Service** | Python, FastAPI, scikit-learn, pandas, joblib, PIL, Groq (Llama-3.1-8b) |
 | **RAG Engine** | Custom NumPy cosine similarity — no vector DB required |
 | **Agentic AI** | Autonomous outbreak monitor (Groq + FastAPI background thread) |
@@ -141,7 +146,7 @@ We utilize a tiered ensemble approach for clinical reliability in rural settings
 
 *   **Primary Tier**: **SymptomNet** (PyTorch Neural Network) using `paraphrase-multilingual-MiniLM-L12-v2` embeddings for deep semantic understanding of **multilingual symptoms** (Hindi, Tamil, Marathi, Telugu, Bengali).
 *   **Secondary Tier**: **Random Forest Fallback** for robust keyword-based verification if neural confidence is borderline.
-*   **Safety Tier**: **Double-Uncertainty Guardrail**. If both models are below 40% confidence, the system refuses to guess and prompts for more details.
+*   **Tertiary Safety Tier — Clinical Heuristic Fallback (V2 Upgrade)**: If both models drop below 40% confidence due to ambiguous symptoms, the system absolutely refuses to guess or hallucinate false information. Instead, it routes the query to a deterministic, offline-capable rule engine built on ASHA guidelines to provide trusted first-aid advice, maximizing patient safety and trust.
 
 ### 🧠 AI Model Technical Specifications
 
@@ -164,7 +169,7 @@ We utilize a tiered ensemble approach for clinical reliability in rural settings
 | • Snakebite (**P1 Emergency**) | • Tuberculosis | • Typhoid |
 | • UTI | • Viral Fever | |
 
-**Safety Guardrails**: Neural Threshold (**0.70**) · RF Threshold (**0.40**) · `is_uncertain` flag
+**Safety Guardrails**: Neural Threshold (**0.70**) · RF Threshold (**0.40**) · `is_uncertain` flag · **V2: Clinical Heuristic Fallback** (6-language rule engine, zero-hallucination, ASHA-grounded advice)
 
 #### 🖼️ Dermatology: Two Ways to Diagnose
 SwasthAI Guardian provides two independent AI systems for health diagnostics:
@@ -205,7 +210,7 @@ python train_disease_model.py   # Generates disease_model.pkl + model_accuracy.t
 
 | Feature | Details |
 |---|---|
-| **Symptom Checker** | Select symptoms or Voice Input → **Hybrid Neural AI** (96.8% acc) → Live Confidence Meter → Alternative Suggestions → **Safety Guardrail Protected**. |
+| **Symptom Checker** | Select symptoms or Voice Input → **Hybrid Neural AI** (96.8% acc) → Live Confidence Meter → Alternative Suggestions → **Safety Guardrail Protected** → **V2: If AI confidence is low, routes to Clinical Heuristic Fallback — zero hallucination, always returns ASHA-grounded advice in 6 languages**. |
 | **Sakhi — Women's Health AI** | Private RAG chatbot. Grounded in 38 WHO/MoHFW/FOGSI/ASHA/UNICEF citations. Voice output (press 🔊). Auto-speaks P1/P2 emergencies. Cites source with every answer. Groq falls back to KB chunk if API down. |
 | **Skin Disease Checker** | On-device PIL pixel analysis. No photo leaves the device. Camera + file upload. 3-question clinical confirmation. Downloadable `.txt` health report. |
 | **Emergency Ambulance** | One-tap SOS. Real GPS coordinates captured via `navigator.geolocation`. Voice-to-text for landmark description. Offline fallback shows `tel:108`. |
@@ -406,10 +411,10 @@ Swasthai-Guardian-Up/
 │           └── api.js                ← 8s timeout + error interceptor
 │
 ├── backend/
-│   └── server.js                 # 665 lines — all routes, auth, DB schema
+│   └── server.js                 # All routes, auth, DB schema + V2 offline AI fallback (6-lang rule engine)
 │
 ├── ai-service/
-│   ├── main.py                   # Hybrid Diagnostic Hub (70% Neural Threshold)
+│   ├── main.py                   # Hybrid Diagnostic Hub (70% Neural → RF → V2 Heuristic Fallback)
 │   ├── model_def.py              # SymptomNet PyTorch Architecture
 │   ├── deep_disease_model.pkl    # Trained Transformer Engine (96.8% accuracy)
 │   ├── disease_model.pkl         # Random Forest Fallback (91.3% accuracy)

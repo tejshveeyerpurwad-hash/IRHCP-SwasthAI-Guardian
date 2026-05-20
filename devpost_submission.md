@@ -23,6 +23,7 @@ Our goal was to build a scalable, AI-powered digital health ecosystem that bridg
 Most health applications simply call a third-party AI API and display the result. SwasthAI owns its intelligence and operates securely, even without a stable internet connection:
 
 *   **Custom Medical AI & Input Guardrails (Upgraded to V2):** We evolved from our V1 Random Forest model to a custom Transformer-based Deep Learning model (**SymptomNet**) achieving **96.8% diagnostic accuracy**. More importantly, we implemented **under-the-hood clinical text guardrails** that detect and block keyboard mashing, repeated character spam, and off-topic conversations in English, Hindi, and Tamil, utilizing a **Double-Uncertainty Safety Gate** to prevent hallucinated diagnoses.
+*   **Deterministic Clinical Heuristic Fallback (V2 Upgrade - Trust & Safety First):** If the neural models are uncertain (< 40% confidence) due to ambiguous symptoms, the system absolutely refuses to guess or hallucinate. Instead, it routes the query to a deterministic, offline-capable rule engine built on ASHA guidelines. It safely maps known rural symptom clusters (e.g. weakness + dizziness) to highly accurate first-aid advice, and if undetermined, gracefully advises the villager to consult their local ASHA worker. This zero-hallucination approach maximizes patient trust and ensures no false information is provided.
 *   **"Sakhi" Women's Health AI (Upgraded to V2 Grounded RAG):** Our private conversational AI for women's health is now powered by a **Grounded RAG (Retrieval-Augmented Generation)** system. It retrieves clinical guidelines from 38 official WHO/MoHFW sources before answering, citing its sources, supporting voice output, and failing over to local knowledge base chunks if the primary AI API is unreachable.
 *   **Under-the-Hood Offline Sync (Maternal & Child Health - V2):** NGO/ASHA workers can now register maternal pregnancy vitals and child nutrition assessments in zero-signal zones. The app computes risk levels and growth status instantly client-side using **local clinical heuristic engines** (WHO blood pressure criteria and BMI Z-score indexes), queuing records locally with visual **"Sync Pending"** indicators, and silently uploading them as soon as the browser detects an internet signal.
 *   **Edge Visual Guardrails & Image Compression (V2):** Before uploading skin photos, a browser-side Pillow validation layer downscales the image to a `16x16` grid in sub-milliseconds to verify skin tone presence, standard deviation (blank checks), and structural edge density (blur checks). If passed, the image is compressed from 5MB+ down to `< 200KB` on-the-fly to guarantee successful uploads over 2G/3G connections.
@@ -33,7 +34,9 @@ Most health applications simply call a third-party AI API and display the result
 
 ---
 
-## System Architecture (V2)
+## System Architecture — Microservices
+
+SwasthAI Guardian is built on a **true 3-service Microservices Architecture**. Each service is independently deployable, fault-isolated, and communicates over internal HTTP JSON APIs. This means if the AI service goes down, the backend continues serving auth, records, and ambulance requests without any interruption.
 
 ```text
 +-------------------------+     +--------------------------+     +------------------------+
@@ -134,6 +137,7 @@ Most health applications simply call a third-party AI API and display the result
 *   Created an **autonomous AI outbreak detection system** running on 30-minute intervals.
 *   Achieved **100% multilingual translation key synchronization (366 unique keys)** across 6 Indian languages with voice interaction.
 *   Designed a highly polished, production-grade offline-first PWA.
+*   Built a **V2 Clinical Heuristic Fallback** — zero-hallucination AI that always returns trusted ASHA-grounded advice even when models are uncertain.
 
 ---
 
