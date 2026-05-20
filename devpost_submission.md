@@ -109,6 +109,7 @@ SwasthAI Guardian is built on a **true 3-service Microservices Architecture**. E
 ### AI Services & Guardrails
 *   Python FastAPI Microservice
 *   Transformer Embeddings + SymptomNet Neural Network
+*   Random Forest Fallback Model (Tier 2 Safety)
 *   Pillow (Skin Tone & Edge Density Segmenter)
 *   FastAPI Test Suite
 *   Groq-powered Llama 3.3

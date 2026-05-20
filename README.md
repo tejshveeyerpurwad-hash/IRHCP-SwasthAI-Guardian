@@ -65,7 +65,7 @@ Most health apps call a third-party AI API and display the result. SwasthAI **ow
 | English only | 6 languages: English, Hindi, Marathi, Tamil, Telugu, Bengali |
 | Text-only interaction | Voice **in** (speech-to-text) + Voice **out** (text-to-speech) |
 | Generic LLM answers | Grounded RAG — every Sakhi answer cites WHO/ASHA/FOGSI |
-| Basic ML model | **Hybrid Neural Architecture** (Transformer Embeddings + Deep Learning) |
+| Basic ML model | **Hybrid Neural Architecture** (Transformer Embeddings + DL + Random Forest Fallback) |
 | Simple Thresholds | **Double-Uncertainty Guardrail** (Safety First) |
 | AI fails silently on vague symptoms | **V2: Clinical Heuristic Fallback** — zero-hallucination, always returns ASHA-grounded advice |
 | No privacy compliance | DISHA 2023 consent modal on first login |
