@@ -19,7 +19,7 @@
 
 1.  **Hybrid Diagnostic Engine (DL + ML)**: 
     - **V1**: Used a basic Random Forest (RF) model (~88% accuracy).
-    - **V2**: Integrated **SymptomNet** (Deep Learning Transformer embeddings). Accuracy is now **96.8%**. It SEMANTICALLY understands Hindi/Marathi/Tamil symptoms instead of just keyword matching.
+    - **V2**: Integrated **SymptomNet** (Deep Learning with Transformer embeddings). Accuracy is now **96.8%**. It SEMANTICALLY understands Hindi/Marathi/Tamil symptoms instead of just keyword matching.
 2.  **Sakhi RAG (Retrieval-Augmented Generation)**:
     - **V1**: Generic LLM chatbot (prone to hallucinations).
     - **V2**: Upgraded to a **Grounded RAG system**. Sakhi retrieves clinical chunks from WHO/MoHFW before answering. Cites every source. Works offline via local knowledge chunks.
@@ -65,7 +65,7 @@ Most health apps call a third-party AI API and display the result. SwasthAI **ow
 | English only | 6 languages: English, Hindi, Marathi, Tamil, Telugu, Bengali |
 | Text-only interaction | Voice **in** (speech-to-text) + Voice **out** (text-to-speech) |
 | Generic LLM answers | Grounded RAG — every Sakhi answer cites WHO/ASHA/FOGSI |
-| Basic ML model | **Hybrid Neural Architecture** (Transformer + Random Forest) |
+| Basic ML model | **Hybrid Neural Architecture** (Transformer Embeddings + Deep Learning) |
 | Simple Thresholds | **Double-Uncertainty Guardrail** (Safety First) |
 | AI fails silently on vague symptoms | **V2: Clinical Heuristic Fallback** — zero-hallucination, always returns ASHA-grounded advice |
 | No privacy compliance | DISHA 2023 consent modal on first login |
@@ -83,7 +83,7 @@ SwasthAI Guardian is built on a **true 3-service Microservices Architecture**. E
 │  Port 5173 (PWA)        │     │  Port 5000              │     │ Port 8000               │
 │                         │     │                         │     │                         │
 │  ● Luminous Emerald UI  │     │  ● JWT Auth + bcryptjs  │     │  ● Hybrid Neural Engine │
-│  ● 6-language i18n      │     │  ● Rate Limiting        │     │  ● Transformer Model    │
+│  ● 6-language i18n      │     │  ● Rate Limiting        │     │  ● Transformer Embeddings│
 │  ● Edge AI Skin Scan    │     │  ● Cluster Load Balance │     │  ● RF Safety Fallback   │
 │  ● Voice In + Out       │     │  ● SQLite (offline)     │     │  ● Outbreak Agent       │
 │  ● PWA installable      │     │  ● CORS Whitelist       │     │  ● Safety Guardrails    │
@@ -416,7 +416,7 @@ Swasthai-Guardian-Up/
 ├── ai-service/
 │   ├── main.py                   # Hybrid Diagnostic Hub (70% Neural → RF → V2 Heuristic Fallback)
 │   ├── model_def.py              # SymptomNet PyTorch Architecture
-│   ├── deep_disease_model.pkl    # Trained Transformer Engine (96.8% accuracy)
+│   ├── deep_disease_model.pkl    # Trained Neural Engine (96.8% accuracy)
 │   ├── disease_model.pkl         # Random Forest Fallback (91.3% accuracy)
 │   ├── rag_service.py            # Sakhi RAG with Groq + KB fallback
 │   ├── outbreak_agent.py         # Autonomous 30-min epidemic scanner
