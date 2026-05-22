@@ -6,12 +6,11 @@
   },
   "private": true,
   "scripts": {
-    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
-    "build": "cd Swasthai-Guardian-Up/frontend && npm install && npm run build",
-    "start": "node Swasthai-Guardian-Up/backend/server.js"
-    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
-    "heroku-postbuild": "npm run build"
-  },
+  "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+  "build": "cd frontend && npm install && npm run build",
+  "start": "node backend/server.js",
+  "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\""
+},
   "devDependencies": {
     "concurrently": "^8.2.2"
   }
