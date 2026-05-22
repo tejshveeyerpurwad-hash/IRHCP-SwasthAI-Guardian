@@ -7,8 +7,8 @@
   "private": true,
   "scripts": {
     "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
-    "build": "cd backend && npm install && npm rebuild sqlite3 --build-from-source && cd ../frontend && npm install --include=dev && npm run build",
-    "start": "node backend/server.js",
+    "build": "cd Swasthai-Guardian-Up/frontend && npm install && npm run build",
+    "start": "node Swasthai-Guardian-Up/backend/server.js"
     "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
     "heroku-postbuild": "npm run build"
   },
