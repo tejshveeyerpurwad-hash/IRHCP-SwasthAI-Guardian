@@ -371,7 +371,7 @@ Voice output via SpeechSynthesisUtterance (🔊 button per message)
 | Name | Role |
 |---|---|
 | **Divyansh Gupta** | Team Leader · AI/ML · Backend Architecture · AI Service · Deployment |
-| **Tejshvee Yerpurwad** | Frontend · UX Design · Language Support · RAG Engine |
+| **Tejshvee Yerpurwad** | Founder . Frontend · UX Design · Language Support · RAG Engine |
 
 ---
 
