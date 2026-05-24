@@ -8,9 +8,9 @@ const BASE_URL = import.meta.env.MODE === 'production'
 
 const api = axios.create({
   baseURL: BASE_URL,
-  // 🌐 Rural India 2G optimization: 15s timeout allows for slow satellite/cell handovers.
-  // All components have offline fallbacks that trigger on network errors.
-  timeout: 15000,
+  // 🌐 Rural India 2G optimization: 8s timeout prevents indefinite hangs on poor networks.
+  // All components have offline fallbacks that trigger immediately on timeout/network errors.
+  timeout: 8000,
   headers: {
     'Content-Type': 'application/json',
   },

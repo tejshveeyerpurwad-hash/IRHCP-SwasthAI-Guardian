@@ -17,7 +17,7 @@
 
 | Feature / Upgrade | V1 Baseline | V2 Production Upgrade (Sprint Work) |
 | :--- | :--- | :--- |
-| **Hybrid Diagnostic Engine (DL + ML)** | Used a basic Random Forest (RF) model (~88% accuracy). | Integrated **SymptomNet** (Deep Learning with Transformer embeddings) with a **Random Forest fallback** for robust keyword-based verification. Accuracy is now **96.8%**. It SEMANTICALLY understands Hindi/Marathi/Tamil symptoms instead of just keyword matching. |
+| **Hybrid Diagnostic Engine (DL + ML)** | Used a basic Random Forest (RF) model (~88% accuracy). | Integrated **SymptomNet** (Deep Learning model powered by multilingual Transformer embeddings: `paraphrase-multilingual-MiniLM-L12-v2`) with a **Random Forest fallback** for robust keyword-based verification. Accuracy is now **96%+**. It SEMANTICALLY understands Hindi/Marathi/Tamil symptoms instead of just keyword matching. |
 | **Sakhi RAG (Retrieval-Augmented Generation)** | Generic LLM chatbot (prone to hallucinations). | Upgraded to a **Grounded RAG system**. Sakhi retrieves clinical chunks from WHO/MoHFW before answering. Cites every source. Works offline via local knowledge chunks. |
 | **Hardened Offline-First Sync** | Basic local storage (required online login). | **Offline-First Capabilities Enabled**:<br><br>• **Offline Login**: If a worker is in a zero-signal zone, they can still "log in" using the demo credentials to access local features. Uses **IndexedDB + Service Worker** for persistent caching.<br><br>• **Offline Maternal & Child Support**: NGO/ASHA workers can register maternal pregnancy vitals and child nutrition assessments in zero-signal zones. Computes risk and growth status instantly client-side using local clinical heuristic engines (WHO blood pressure criteria / BMI Z-score indices) and caches records inside local queues (`offline_maternal_records` / `offline_child_records`) with visual "Sync Pending" indicators. Silently uploads to the server database as soon as the browser is back online or refreshed. |
 | **Multilingual Voice I/O** | English only, text-only interaction. | Full speech-to-text and text-to-speech support for 6 Indian languages, removing literacy barriers. |
@@ -91,7 +91,7 @@ graph LR
     end
 
     subgraph AIService ["🧠 FastAPI AI Microservice (Port 8000)"]
-        C["● Hybrid Neural Engine<br>● Transformer Model<br>● RF Safety Fallback<br>● Outbreak Agent<br>● Safety Guardrails<br>● Sakhi RAG (38 chunks)"]
+        C["● Hybrid Neural Engine<br>● MLP on Transformer Embeddings<br>● RF Safety Fallback<br>● Outbreak Agent<br>● Safety Guardrails<br>● Sakhi RAG (38 chunks)"]
     end
 
     Frontend -->|HTTPS API Requests| Backend
@@ -131,7 +131,7 @@ graph LR
 
 We utilize a tiered ensemble approach for clinical reliability in rural settings:
 
-*   **Primary Tier**: **SymptomNet** (PyTorch Neural Network) using `paraphrase-multilingual-MiniLM-L12-v2` embeddings for deep semantic understanding of **multilingual symptoms** (Hindi, Tamil, Marathi, Telugu, Bengali).
+*   **Primary Tier**: **SymptomNet** (Deep Learning MLP powered by multilingual Transformer embeddings: `paraphrase-multilingual-MiniLM-L12-v2`) for deep semantic understanding of **multilingual symptoms** (Hindi, Tamil, Marathi, Telugu, Bengali).
 *   **Secondary Tier**: **Random Forest Fallback** for robust keyword-based verification if neural confidence is borderline.
 *   **Tertiary Safety Tier — Clinical Heuristic Fallback (V2 Upgrade)**: If both models drop below 40% confidence due to ambiguous symptoms, the system absolutely refuses to guess or hallucinate false information. Instead, it routes the query to a deterministic, offline-capable rule engine built on ASHA guidelines to provide trusted first-aid advice, maximizing patient safety and trust.
 
@@ -143,7 +143,7 @@ We utilize a tiered ensemble approach for clinical reliability in rural settings
 | **Fallback Engine** | Random Forest + Gradient Boosting Ensemble |
 | **Dataset Size** | 800+ curated rural samples (Multilingual) |
 | **Inference Latency** | < 2.5s on standard CPU |
-| **Accuracy** | **96.8%** (Neural) \| **88.3%** (Fallback) |
+| **Accuracy** | **96%+** (Neural) \| **89.4%** (Fallback) |
 
 #### 📋 Supported Disease Classes (17)
 
@@ -167,6 +167,7 @@ SwasthAI Guardian provides two independent AI systems for health diagnostics:
 
 *   **Path B: Specialized Skin Scanner** (via "Skin Care" page)
     *   **No Typing Required**: A dedicated, photo-based tool built specifically for dermatology.
+    *   **On-Device JavaScript Canvas Analysis**: Pixel-level skin tone detection, redness mapping, and inflammation scoring — entirely in the browser. No photo leaves the device.
     *   **Hybrid Logic**: Combines pixel analysis with 3 clinical questions (Duration, Spread, Pain) for a high-confidence prediction.
 
 ---
@@ -178,7 +179,7 @@ SwasthAI Guardian provides two independent AI systems for health diagnostics:
 To retrain the high-performance **Neural Engine (SymptomNet)**:
 ```bash
 cd ai-service
-python train_deep_model.py     # Generates deep_disease_model.pkl (96.8% Accuracy)
+python train_deep_model.py     # Generates deep_disease_model.pkl (96%+ Accuracy)
 ```
 
 To retrain the **Random Forest Fallback**:
@@ -197,9 +198,9 @@ python train_disease_model.py   # Generates disease_model.pkl + model_accuracy.t
 
 | Feature | Details |
 |---|---|
-| **Symptom Checker** | Select symptoms or Voice Input → **Hybrid Neural AI** (96.8% acc) → Live Confidence Meter → Alternative Suggestions → **Safety Guardrail Protected** → **V2: If AI confidence is low, routes to Clinical Heuristic Fallback — zero hallucination, always returns ASHA-grounded advice in 6 languages**. |
+| **Symptom Checker** | Select symptoms or Voice Input → **Hybrid Neural AI** (96%+ acc) → Live Confidence Meter → Alternative Suggestions → **Safety Guardrail Protected** → **V2: If AI confidence is low, routes to Clinical Heuristic Fallback — zero hallucination, always returns ASHA-grounded advice in 6 languages**. |
 | **Sakhi — Women's Health AI** | Private RAG chatbot. Grounded in 38 WHO/MoHFW/FOGSI/ASHA/UNICEF citations. Voice output (press 🔊). Auto-speaks P1/P2 emergencies. Cites source with every answer. Groq falls back to KB chunk if API down. |
-| **Skin Disease Checker** | On-device PIL pixel analysis. No photo leaves the device. Camera + file upload. 3-question clinical confirmation. Downloadable `.txt` health report. |
+| **Skin Disease Checker** | On-device JavaScript Canvas pixel analysis. No photo leaves the device. Camera + file upload. 3-question clinical confirmation. Image auto-compressed to <200KB for 2G networks. Downloadable `.txt` health report. |
 | **Emergency Ambulance** | One-tap SOS. Real GPS coordinates captured via `navigator.geolocation`. Voice-to-text for landmark description. Offline fallback shows `tel:108`. |
 | **Sanitary Pad Request** | Discreet ASHA delivery request — private, no names visible to others. |
 | **Health Profile** | Secure health ID, past AI predictions, village ID, name management. |

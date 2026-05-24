@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -6,18 +6,83 @@ import { useLanguage } from '../context/LanguageContext';
 import {
   HeartPulse, Shield, Phone, Mail, Lock, User,
   ArrowRight, ChevronLeft, MapPin, AlertCircle,
-  ShieldCheck, Wifi, Zap, Users
+  ShieldCheck, Wifi, Zap, Users, WifiOff
 } from 'lucide-react';
+
+// ── Offline-First Login Helpers ──────────────────────────────────────────────
+// Demo credentials pre-cached on first successful online login.
+// Enables ASHA workers in zero-signal zones to authenticate locally.
+const OFFLINE_CACHE_KEY = 'swasthai_offline_user_cache';
+const DEMO_CREDENTIALS = [
+  { id: '9876543210',       password: 'Demo@1234', role: 'villager', name: 'Demo Villager'   },
+  { id: '9876543211',       password: 'Demo@1234', role: 'ngo',      name: 'Demo ASHA'      },
+  { id: 'admin@swasthai.in', password: 'Demo@1234', role: 'admin',  name: 'Demo Admin'     },
+];
+
+function seedOfflineCache() {
+  // Pre-seed demo credentials so offline login works on first visit too
+  const existing = localStorage.getItem(OFFLINE_CACHE_KEY);
+  if (!existing) {
+    localStorage.setItem(OFFLINE_CACHE_KEY, JSON.stringify(DEMO_CREDENTIALS));
+  }
+}
+
+function tryOfflineLogin(identifier, passwordOrOtp, loginMethod, role) {
+  try {
+    const cached = JSON.parse(localStorage.getItem(OFFLINE_CACHE_KEY) || '[]');
+    const user = cached.find(u => {
+      const idMatch = u.id === identifier;
+      const roleMatch = !role || u.role === role;
+      if (loginMethod === 'otp') {
+        // OTP mode: accept '1234' as universal demo OTP offline
+        return idMatch && roleMatch && passwordOrOtp === '1234';
+      }
+      return idMatch && roleMatch && u.password === passwordOrOtp;
+    });
+    return user || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function cacheUserAfterLogin(identifier, password, role, name) {
+  try {
+    const existing = JSON.parse(localStorage.getItem(OFFLINE_CACHE_KEY) || '[]');
+    const idx = existing.findIndex(u => u.id === identifier && u.role === role);
+    const entry = { id: identifier, password, role, name: name || identifier };
+    if (idx >= 0) {
+      existing[idx] = entry;
+    } else {
+      existing.push(entry);
+    }
+    localStorage.setItem(OFFLINE_CACHE_KEY, JSON.stringify(existing));
+  } catch (e) { /* storage full — ignore */ }
+}
 
 export default function LoginPage() {
   const { t } = useLanguage();
-  const [loginMethod, setLoginMethod] = useState('password');
+  const [loginMethod, setLoginMethod] = useState('otp');
   const [formData, setFormData] = useState({ identifier: '', password: '', otp: '', role: 'villager' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [usedOfflineFallback, setUsedOfflineFallback] = useState(false);
 
   const { loginPassword, loginOTP } = useAuth();
   const navigate = useNavigate();
+
+  // Seed demo credential cache and listen for network changes
+  useEffect(() => {
+    seedOfflineCache();
+    const goOnline  = () => setIsOffline(false);
+    const goOffline = () => setIsOffline(true);
+    window.addEventListener('online',  goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online',  goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -29,18 +94,50 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    const credential = loginMethod === 'password' ? formData.password : formData.otp;
+    if (!formData.identifier || !credential) {
+      setError('Please fill in all required fields.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      if (!formData.identifier || (loginMethod === 'password' && !formData.password) || (loginMethod === 'otp' && !formData.otp)) {
-        throw new Error('Please fill in all required fields.');
-      }
       if (loginMethod === 'password') {
         await loginPassword(formData.identifier, formData.password, formData.role);
       } else {
         await loginOTP(formData.identifier, formData.otp, formData.role);
       }
+      // Cache credentials for offline use after a successful online login
+      cacheUserAfterLogin(formData.identifier, credential, formData.role);
+      setUsedOfflineFallback(false);
       navigate(`/${formData.role}`);
     } catch (err) {
-      setError(err.message || 'Login failed. Please check your details and try again.');
+      // ── Offline Fallback Login ────────────────────────────────────────────
+      // If the network is unavailable, try matching against cached demo credentials.
+      const isNetworkErr = !err.response || err.code === 'ECONNABORTED' || err.message?.toLowerCase().includes('network');
+      if (isNetworkErr) {
+        const offlineUser = tryOfflineLogin(formData.identifier, credential, loginMethod, formData.role);
+        if (offlineUser) {
+          // Build a minimal local session so the app recognises the user
+          const offlineToken = `offline_session_${offlineUser.role}_${Date.now()}`;
+          localStorage.setItem('token', offlineToken);
+          localStorage.setItem('offline_user', JSON.stringify({
+            id: `offline_${offlineUser.role}`,
+            name: offlineUser.name,
+            role: offlineUser.role,
+            villageId: 'v101',
+            isOfflineSession: true
+          }));
+          setUsedOfflineFallback(true);
+          setIsLoading(false);
+          // Small delay so the user sees the success state
+          setTimeout(() => navigate(`/${offlineUser.role}`), 400);
+          return;
+        }
+        setError('📶 No internet connection. Use demo credentials (shown below) to access offline mode.');
+      } else {
+        setError(err.message || 'Login failed. Please check your details and try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -156,6 +253,22 @@ export default function LoginPage() {
               {t.signin_desc || 'Sign in to access your health dashboard, records, and emergency services.'}
             </p>
           </div>
+
+          {/* Offline Banner */}
+          <AnimatePresence>
+            {isOffline && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                className="mb-4 p-3 bg-amber-50 border border-amber-300 text-amber-800 rounded-2xl flex items-center gap-3 text-xs font-bold"
+              >
+                <WifiOff className="w-4 h-4 shrink-0 text-amber-600" />
+                <span>
+                  <span className="font-black">Offline Mode Active</span> — Use demo credentials below to access SwasthAI.
+                  <span className="block text-amber-600 font-medium mt-0.5">ऑफ़लाइन मोड: डेमो क्रेडेंशियल से लॉगिन करें।</span>
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Error */}
           <AnimatePresence>
@@ -273,9 +386,11 @@ export default function LoginPage() {
               <div className="absolute inset-0 bg-emerald-600 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
               <span className="relative z-10 flex items-center gap-2">
                 {isLoading ? (
-                  <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Signing in...</>
+                  <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {isOffline ? 'Checking offline...' : 'Signing in...'}</>
+                ) : usedOfflineFallback ? (
+                  <><Wifi className="w-4 h-4" /> Offline Session Active ✓</>
                 ) : (
-                  <>Sign In <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" /></>
+                  <>Sign In {isOffline ? <WifiOff className="w-4 h-4" /> : <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}</>
                 )}
               </span>
             </motion.button>

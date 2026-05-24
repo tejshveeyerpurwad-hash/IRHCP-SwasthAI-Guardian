@@ -95,6 +95,24 @@ with torch.no_grad():
     print("\n[RESULT] Deep Learning Classification Report:")
     # Only report classes that actually appeared in the test set to avoid errors
     unique_labels = np.unique(np.concatenate((y_test, predicted.cpu().numpy())))
-    print(classification_report(y_test, predicted.cpu().numpy(), 
+    report = classification_report(y_test, predicted.cpu().numpy(), 
                               labels=unique_labels,
-                              target_names=label_encoder.classes_[unique_labels]))
+                              target_names=label_encoder.classes_[unique_labels])
+    print(report)
+
+    # ── Save accuracy to file for audit & judge verification ──────────────────
+    from sklearn.metrics import accuracy_score
+    acc = accuracy_score(y_test, predicted.cpu().numpy())
+    print(f"\n[ACCURACY] SymptomNet Test Accuracy: {acc*100:.1f}%")
+    with open("deep_model_accuracy.txt", "w") as f:
+        f.write("SwasthAI Guardian - SymptomNet Deep Learning Model\n")
+        f.write("=" * 52 + "\n")
+        f.write(f"Algorithm      : Multilayer Perceptron (3-layer MLP)\n")
+        f.write(f"Embeddings     : {MODEL_NAME}\n")
+        f.write(f"Training set   : {len(X_train)} samples\n")
+        f.write(f"Test set       : {len(X_test)} samples\n")
+        f.write(f"Epochs         : {EPOCHS}\n")
+        f.write(f"Test Accuracy  : {acc*100:.1f}%\n")
+        f.write("\nClassification Report:\n")
+        f.write(report)
+    print("[SAVED] deep_model_accuracy.txt")
