@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
-import sqlite3 from 'sqlite3';
+import sqlite3 from "sqlite";
 import { open } from 'sqlite';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
