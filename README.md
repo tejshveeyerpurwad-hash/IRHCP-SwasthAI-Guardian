@@ -15,27 +15,16 @@
 
 ### 🚀 Major Updates since V1 Demo
 
-1.  **Hybrid Diagnostic Engine (DL + ML)**: 
-    - **V1**: Used a basic Random Forest (RF) model (~88% accuracy).
-    - **V2**: Integrated **SymptomNet** (Deep Learning with Transformer embeddings). Accuracy is now **96.8%**. It SEMANTICALLY understands Hindi/Marathi/Tamil symptoms instead of just keyword matching.
-2.  **Sakhi RAG (Retrieval-Augmented Generation)**:
-    - **V1**: Generic LLM chatbot (prone to hallucinations).
-    - **V2**: Upgraded to a **Grounded RAG system**. Sakhi retrieves clinical chunks from WHO/MoHFW before answering. Cites every source. Works offline via local knowledge chunks.
-3.  **Hardened Offline-First Sync**:
-    - **V1**: Basic local storage (required online login).
-    - **V2**: **Offline-First Capabilities Enabled**:
-        - **Offline Login**: If a worker is in a zero-signal zone, they can still "log in" using the demo credentials to access local features. Uses **IndexedDB + Service Worker** for persistent caching.
-        - **Offline Maternal & Child Support**: NGO/ASHA workers can register maternal pregnancy vitals and child nutrition assessments in zero-signal zones. Computes risk and growth status instantly client-side using local clinical heuristic engines (WHO blood pressure criteria / BMI Z-score indices) and caches records inside local queues (`offline_maternal_records` / `offline_child_records`) with visual "Sync Pending" indicators. Silently uploads to the server database as soon as the browser is back online or refreshed.
-4.  **Multilingual Voice I/O**:
-    - Full speech-to-text and text-to-speech support for 6 Indian languages, removing literacy barriers.
-5.  **Smart Share System (Navbar QR)**:
-    - **V2 Update**: Integrated a high-visibility **Share Button** in the navbar. It generates a **Dynamic QR Code** and app link, allowing villagers and ASHA workers to distribute the PWA instantly without an app store, even in low-connectivity zones.
-6.  **Agentic Outbreak Radar**:
-    - **V2 Update**: A background autonomous agent scans village clinical data every 30 minutes. It detects symptom clusters (e.g., 5+ cases of fever in one village) and triggers **instant notifications for both District Admins and local ASHA workers** to stop outbreaks before they become epidemics.
-7.  **Edge Image Compression (V2)**:
-    - **V2 Update**: Integrated browser-side image compression on skin photo uploads. Automatically reduces high-res images (5MB+) down to `< 200KB` on-the-fly before upload, ensuring reliable transmission over spotty 2G/3G connections.
-8.  **API Resilience via Exponential Backoff (V2)**:
-    - **V2 Update**: Wrapped the primary Groq LLM API client in a 3-attempt exponential backoff and retry loop (1s, 2s, 4s delays) to mitigate network jitter. Added an automatic failover to the local WHO/ASHA knowledge base to prevent silent clinical failures during API blackouts.
+| Feature / Upgrade | V1 Baseline | V2 Production Upgrade (Sprint Work) |
+| :--- | :--- | :--- |
+| **Hybrid Diagnostic Engine (DL + ML)** | Used a basic Random Forest (RF) model (~88% accuracy). | Integrated **SymptomNet** (Deep Learning with Transformer embeddings). Accuracy is now **96.8%**. It SEMANTICALLY understands Hindi/Marathi/Tamil symptoms instead of just keyword matching. |
+| **Sakhi RAG (Retrieval-Augmented Generation)** | Generic LLM chatbot (prone to hallucinations). | Upgraded to a **Grounded RAG system**. Sakhi retrieves clinical chunks from WHO/MoHFW before answering. Cites every source. Works offline via local knowledge chunks. |
+| **Hardened Offline-First Sync** | Basic local storage (required online login). | **Offline-First Capabilities Enabled**:<br><br>• **Offline Login**: If a worker is in a zero-signal zone, they can still "log in" using the demo credentials to access local features. Uses **IndexedDB + Service Worker** for persistent caching.<br><br>• **Offline Maternal & Child Support**: NGO/ASHA workers can register maternal pregnancy vitals and child nutrition assessments in zero-signal zones. Computes risk and growth status instantly client-side using local clinical heuristic engines (WHO blood pressure criteria / BMI Z-score indices) and caches records inside local queues (`offline_maternal_records` / `offline_child_records`) with visual "Sync Pending" indicators. Silently uploads to the server database as soon as the browser is back online or refreshed. |
+| **Multilingual Voice I/O** | English only, text-only interaction. | Full speech-to-text and text-to-speech support for 6 Indian languages, removing literacy barriers. |
+| **Smart Share System (Navbar QR)** | Standard web app distribution. | **V2 Update**: Integrated a high-visibility **Share Button** in the navbar. It generates a **Dynamic QR Code** and app link, allowing villagers and ASHA workers to distribute the PWA instantly without an app store, even in low-connectivity zones. |
+| **Agentic Outbreak Radar** | Manual outbreak reporting. | **V2 Update**: A background autonomous agent scans village clinical data every 30 minutes. It detects symptom clusters (e.g., 5+ cases of fever in one village) and triggers **instant notifications for both District Admins and local ASHA workers** to stop outbreaks before they become epidemics. |
+| **Edge Image Compression** | Standard high-resolution uploads. | **V2 Update**: Integrated browser-side image compression on skin photo uploads. Automatically reduces high-res images (5MB+) down to `< 200KB` on-the-fly before upload, ensuring reliable transmission over spotty 2G/3G connections. |
+| **API Resilience via Exponential Backoff** | Standard API requests without failover. | **V2 Update**: Wrapped the primary Groq LLM API client in a 3-attempt exponential backoff and retry loop (1s, 2s, 4s delays) to mitigate network jitter. Added an automatic failover to the local WHO/ASHA knowledge base to prevent silent clinical failures during API blackouts. |
 
 ---
 
