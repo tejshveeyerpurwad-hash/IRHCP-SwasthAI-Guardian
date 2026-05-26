@@ -1,0 +1,17 @@
+# Environment variables — NEVER commit secrets
+.env
+.env.local
+.env.production
+
+# SQLite database — contains real PHI (protected health information)
+*.sqlite
+*.sqlite3
+*.db
+
+# Node
+node_modules/
+npm-debug.log*
+
+# OS artifacts
+.DS_Store
+Thumbs.db
